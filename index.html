@@ -200,7 +200,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi ke Layar UMUM & JURI: suara gong besar saat mulai & waktu habis, serta alarm emergency pada 10 detik terakhir.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi ke Layar UMUM & JURI: suara gong saat mulai & habis, suara detik saat hitung mundur berjalan, dan alarm emergency pada 10 detik terakhir.</p>
               </div>
             </div>
 
@@ -217,18 +217,21 @@
               <button onclick="testGongSound()" class="px-3 py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-indigo-300 text-xs font-semibold border border-indigo-700/50">
                 Tes Gong
               </button>
+              <button onclick="testTickSound()" class="px-3 py-2.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-300 text-xs font-semibold border border-amber-700/50">
+                Tes Detik
+              </button>
               <button onclick="test10SecondsCountdown()" class="px-3 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-200 text-xs font-bold border border-rose-700/60">
                 Tes 10 Detik
               </button>
             </div>
           </div>
 
-          <!-- UPLOAD / MUAT LANGSUNG AUDIO DARI FILE VIDEO LAMPIRAN 1 & 2 -->
-          <div class="pt-3 border-t border-slate-800/90 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- UPLOAD / MUAT LANGSUNG AUDIO DARI FILE VIDEO/AUDIO (GONG, DETIK, EMERGENCY) -->
+          <div class="pt-3 border-t border-slate-800/90 grid grid-cols-1 md:grid-cols-3 gap-3">
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
-              <div class="text-xs">
-                <div class="font-bold text-indigo-300">Suara Gong (Lampiran 1)</div>
-                <div id="gongSourceStatus" class="text-[11px] text-slate-400">Default: gong.mp3 / Gong Agung</div>
+              <div class="text-xs min-w-0">
+                <div class="font-bold text-indigo-300">Suara Gong</div>
+                <div id="gongSourceStatus" class="text-[11px] text-slate-400 truncate">Default: gong.mp3 / Gong Agung</div>
               </div>
               <label class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer shrink-0">
                 Pilih Video/Audio
@@ -237,9 +240,20 @@
             </div>
 
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
-              <div class="text-xs">
-                <div class="font-bold text-rose-300">Suara Emergency 10 Detik (Lampiran 2)</div>
-                <div id="tenseSourceStatus" class="text-[11px] text-slate-400">Default: tense10s.mp3 / Alarm Emergency</div>
+              <div class="text-xs min-w-0">
+                <div class="font-bold text-amber-300">Suara Detik Pertandingan</div>
+                <div id="tickSourceStatus" class="text-[11px] text-slate-400 truncate">Default: tick.mp3 / Synth Detik</div>
+              </div>
+              <label class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold cursor-pointer shrink-0">
+                Pilih Video/Audio
+                <input type="file" accept="video/*,audio/*" onchange="loadCustomMediaAudio('tick', this)" class="hidden" />
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
+              <div class="text-xs min-w-0">
+                <div class="font-bold text-rose-300">Suara Emergency 10 Detik</div>
+                <div id="tenseSourceStatus" class="text-[11px] text-slate-400 truncate">Default: tense10s.mp3 / Alarm Emergency</div>
               </div>
               <label class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer shrink-0">
                 Pilih Video/Audio
@@ -472,18 +486,23 @@
     }
 
     // =========================================================================
-    // 2. SISTEM MEDIA AUDIO (VIDEO/AUDIO LAMPIRAN 1 & 2 + SYNTH AKURAT)
+    // 2. SISTEM MEDIA AUDIO (GONG, DETIK PERTANDINGAN, EMERGENCY + SYNTH)
     // =========================================================================
     const GONG_AUDIO_SRC = "gong.mp3";
+    const TICK_AUDIO_SRC = "tick.mp3";
     const TENSE_AUDIO_SRC = "tense10s.mp3";
 
     const externalGongAudio = new Audio(GONG_AUDIO_SRC);
     externalGongAudio.preload = "auto";
 
+    const externalTickAudio = new Audio(TICK_AUDIO_SRC);
+    externalTickAudio.preload = "auto";
+
     const externalTenseAudio = new Audio(TENSE_AUDIO_SRC);
     externalTenseAudio.preload = "auto";
 
     let customGongObjectUrl = null;
+    let customTickObjectUrl = null;
     let customTenseObjectUrl = null;
 
     let audioCtx = null;
@@ -503,6 +522,13 @@
         externalGongAudio.src = objUrl;
         externalGongAudio.load();
         const st = document.getElementById("gongSourceStatus");
+        if (st) st.textContent = `Aktif: ${file.name}`;
+      } else if (type === "tick") {
+        if (customTickObjectUrl) URL.revokeObjectURL(customTickObjectUrl);
+        customTickObjectUrl = objUrl;
+        externalTickAudio.src = objUrl;
+        externalTickAudio.load();
+        const st = document.getElementById("tickSourceStatus");
         if (st) st.textContent = `Aktif: ${file.name}`;
       } else if (type === "tense") {
         if (customTenseObjectUrl) URL.revokeObjectURL(customTenseObjectUrl);
@@ -526,7 +552,7 @@
 
     function unlockAllAudio() {
       ensureAudioContext();
-      [externalGongAudio, externalTenseAudio].forEach(aud => {
+      [externalGongAudio, externalTickAudio, externalTenseAudio].forEach(aud => {
         if (aud && aud.readyState === 0) {
           aud.load();
         }
@@ -543,14 +569,23 @@
       isTenseLoopPlaying = false;
     }
 
+    function stopExternalTickAudio() {
+      if (!externalTickAudio.paused) {
+        externalTickAudio.pause();
+      }
+      externalTickAudio.currentTime = 0;
+    }
+
     function toggleAudioMute() {
       isAudioMuted = !isAudioMuted;
       ensureAudioContext();
       externalGongAudio.muted = isAudioMuted;
+      externalTickAudio.muted = isAudioMuted;
       externalTenseAudio.muted = isAudioMuted;
 
       if (isAudioMuted) {
         stopExternalTenseAudio();
+        stopExternalTickAudio();
       }
 
       const btn = document.getElementById("audioToggleBtn");
@@ -563,7 +598,7 @@
       }
     }
 
-    // 1. Bunyi Gong Besar (Seperti Lampiran 1)
+    // 1. Bunyi Gong Besar
     function playLoudGong() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -581,7 +616,7 @@
       }
     }
 
-    // Sintesis Gong Agung Besar (Meniru dentuman gong perunggu raksasa beresonansi rendah & panjang)
+    // Sintesis Gong Agung Besar
     function playSynthGongFallback() {
       if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
@@ -592,7 +627,6 @@
       masterGain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
       masterGain.connect(audioCtx.destination);
 
-      // Harmonik khas gong besar Jawa/Nusantara (fundamental bass dalam + shimmer metalik + beating FM)
       const partials = [
         { freq: 65.4, amp: 0.90, type: "sine", decay: 4.5, pitchDrop: 0.97 },
         { freq: 98.0, amp: 0.65, type: "triangle", decay: 4.0, pitchDrop: 0.985 },
@@ -620,7 +654,6 @@
         osc.stop(now + p.decay + 0.05);
       });
 
-      // Efek modulasi getaran ("ombak" resonansi gong besar)
       const lfo = audioCtx.createOscillator();
       const lfoGain = audioCtx.createGain();
       lfo.frequency.setValueAtTime(2.6, now);
@@ -631,11 +664,26 @@
       lfo.stop(now + duration);
     }
 
-    // Bunyi detik biasa (di atas 10 detik)
+    // 2. Bunyi Detik Pertandingan (Memutar file upload / tick.mp3 per detik, fallback synth)
     function playNormalTick() {
       if (isAudioMuted) return;
       ensureAudioContext();
-      if (!audioCtx) return;
+
+      try {
+        externalTickAudio.currentTime = 0;
+        const playPromise = externalTickAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            playSynthNormalTickFallback();
+          });
+        }
+      } catch (err) {
+        playSynthNormalTickFallback();
+      }
+    }
+
+    function playSynthNormalTickFallback() {
+      if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -649,10 +697,11 @@
       osc.stop(now + 0.065);
     }
 
-    // 2. Bunyi Emergency 10 Detik Terakhir (Seperti Lampiran 2)
+    // 3. Bunyi Emergency 10 Detik Terakhir
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
+      stopExternalTickAudio();
 
       if (isTenseLoopPlaying && !externalTenseAudio.paused) {
         return;
@@ -681,12 +730,10 @@
       }
     }
 
-    // Sintesis Alarm Emergency / Countdown Peringatan Cepat (Meniru nada alarm darurat berulang per detik)
     function playSynthEmergencyFallback(secLeft) {
       if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
 
-      // Pola 2-nada alarm emergency (High-Low / Beep-Beep cepat yang makin intens di 3 detik akhir)
       const patterns = secLeft <= 3
         ? [
             { t: 0.00, f1: 1480, f2: 1180, dur: 0.14 },
@@ -704,7 +751,6 @@
         const gain = audioCtx.createGain();
         osc.type = "sawtooth";
 
-        // Filter agar terdengar tajam seperti horn/alarm emergency
         const filter = audioCtx.createBiquadFilter();
         filter.type = "bandpass";
         filter.frequency.setValueAtTime(1400, now + p.t);
@@ -732,10 +778,17 @@
       playLoudGong();
     }
 
+    // Tombol Tes Detik
+    function testTickSound() {
+      unlockAllAudio();
+      playNormalTick();
+    }
+
     // Tombol Tes 10 Detik (Simulasi langsung hitung mundur 00:10 -> 00:00 + Gong Habis)
     function test10SecondsCountdown() {
       unlockAllAudio();
       stopExternalTenseAudio();
+      stopExternalTickAudio();
       const configuredDur = getConfiguredDurationSec();
       appState.timer = {
         durationSec: configuredDur,
@@ -915,6 +968,7 @@
     function applyTimerDurationPreset(seconds) {
       const dur = Math.max(1, Number(seconds) || DEFAULT_MATCH_DURATION_SEC);
       stopExternalTenseAudio();
+      stopExternalTickAudio();
       appState.timer = {
         durationSec: dur,
         remainingSec: dur,
@@ -968,6 +1022,7 @@
 
     function pauseMatchTimer() {
       stopExternalTenseAudio();
+      stopExternalTickAudio();
       const configuredDur = getConfiguredDurationSec();
       const rem = getCurrentRemainingSeconds();
       appState.timer = {
@@ -982,6 +1037,7 @@
 
     function resetMatchTimer() {
       stopExternalTenseAudio();
+      stopExternalTickAudio();
       const configuredDur = getConfiguredDurationSec();
       appState.timer = {
         durationSec: configuredDur,
@@ -1093,6 +1149,7 @@
         } else if (rem === 0) {
           // 3. Hentikan alarm 10 detik terakhir & bunyikan gong besar saat waktu habis (00:00)
           stopExternalTenseAudio();
+          stopExternalTickAudio();
           playLoudGong();
           lastKnownTimerRunning = false;
           appState.timer = {
@@ -1308,6 +1365,7 @@
     function setMatchStatus(matchId, newStatus) {
       if (newStatus === "live") {
         stopExternalTenseAudio();
+        stopExternalTickAudio();
         Object.keys(appState.matches).forEach(k => {
           if (appState.matches[k].status === "live") {
             appState.matches[k].status = "pending";
@@ -1378,6 +1436,7 @@
     function resetAllData() {
       if (confirm("Reset seluruh data turnamen ke awal?")) {
         stopExternalTenseAudio();
+        stopExternalTickAudio();
         appState = createDefaultState();
         lastSoundedSecond = null;
         lastKnownTimerRunning = false;
