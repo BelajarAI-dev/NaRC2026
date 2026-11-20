@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistem Manajemen Turnamen — Room PIN Kahoot, Firebase & Timer</title>
+  <title>Sistem Manajemen Turnamen — Room PIN Otomatis & Firebase</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase App & Realtime Database SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -225,31 +225,37 @@
     </section>
 
     <!-- ========================================================= -->
-    <!-- 2. TAMPILAN HOST (BUAT / BUKA PIN + KONTROL PENUH)        -->
+    <!-- 2. TAMPILAN HOST (PIN OTOMATIS + KONTROL PENUH)           -->
     <!-- ========================================================= -->
     <section id="view-host" class="hidden space-y-6">
       <div id="hostLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl space-y-5">
         <div>
           <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
-          <p class="text-xs text-slate-400">Buat sesi PIN baru seperti Kahoot atau lanjutkan sesi PIN yang sudah ada.</p>
+          <p class="text-xs text-slate-400">Sistem akan membuat <b>PIN 6 Digit Otomatis</b> setelah Anda masuk.</p>
         </div>
 
         <form onsubmit="handleHostLogin(event)" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">PIN Turnamen (Kosongkan = Buat PIN Baru Otomatis)</label>
-            <input type="text" id="hostPinInput" inputmode="numeric" maxlength="6" autocomplete="off"
-              placeholder="Contoh: 482910 (atau kosongkan)"
-              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono-timer text-lg font-bold tracking-widest text-amber-400 focus:outline-none focus:border-indigo-500" />
-          </div>
-          <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Host</label>
             <input type="password" id="hostPasswordInput" required autocomplete="off"
-              placeholder="Default sesi baru: admin"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500" />
           </div>
-          <p id="hostLoginError" class="text-xs text-rose-400 hidden">Password Host tidak valid untuk PIN tersebut.</p>
+
+          <div id="resumePinContainer" class="hidden pt-1">
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">PIN Sesi Sebelumnya (6 Digit)</label>
+            <input type="text" id="hostResumePinInput" inputmode="numeric" maxlength="6" autocomplete="off"
+              class="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-700 font-mono-timer text-lg font-bold tracking-widest text-amber-400 focus:outline-none focus:border-indigo-500" />
+          </div>
+
+          <div class="flex justify-end">
+            <button type="button" onclick="toggleResumePinInput()" id="toggleResumePinBtn" class="text-[11px] text-slate-400 hover:text-indigo-400 underline">
+              Lanjutkan sesi PIN lama?
+            </button>
+          </div>
+
+          <p id="hostLoginError" class="text-xs text-rose-400 hidden"></p>
           <button type="submit" id="hostLoginBtn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition">
-            Buka / Buat Sesi Host
+            Masuk & Buat PIN Otomatis
           </button>
         </form>
       </div>
@@ -259,7 +265,7 @@
         <div class="glass-card rounded-2xl p-5 border-amber-500/40 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-amber-950/30 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div class="flex items-center gap-2">
-              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ROOM PIN TURNAMEN AKTIF</span>
+              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ROOM PIN TURNAMEN AKTIF (OTOMATIS)</span>
               <span id="hostCloudSyncBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                 Menyimpan ke Cloud...
               </span>
@@ -270,7 +276,7 @@
                 Salin PIN
               </button>
               <button onclick="generateNewHostPinSession()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition">
-                Buat PIN Baru
+                Acak PIN Baru
               </button>
             </div>
           </div>
@@ -280,7 +286,7 @@
               Reset Data PIN Ini
             </button>
             <button onclick="logoutHost()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
-              Keluar / Ganti PIN
+              Keluar Host
             </button>
           </div>
         </div>
@@ -454,11 +460,11 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs text-slate-400 mb-1">Ubah Password Host</label>
-                <input type="password" id="cfgHostPass" placeholder="Isi untuk mengubah..." onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
+                <input type="password" id="cfgHostPass" autocomplete="off" onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
               </div>
               <div>
                 <label class="block text-xs text-slate-400 mb-1">Password Global Semua Juri</label>
-                <input type="password" id="cfgGlobalJudgePass" placeholder="Isi password juri..." onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
+                <input type="password" id="cfgGlobalJudgePass" autocomplete="off" onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
               </div>
             </div>
 
@@ -511,7 +517,7 @@
     <section id="view-judge" class="hidden space-y-6">
       <div id="judgeLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl">
         <h2 class="text-xl font-extrabold text-white mb-1">Terminal Penilaian Juri</h2>
-        <p class="text-xs text-slate-400 mb-6">Masukkan <b>PIN Turnamen</b>, nomor juri Anda, dan password dari Host.</p>
+        <p class="text-xs text-slate-400 mb-6">Masukkan <b>PIN Turnamen</b>, nomor juri Anda, dan password.</p>
         <form onsubmit="handleJudgeLogin(event)" class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">PIN Turnamen</label>
@@ -575,7 +581,7 @@
 
   <script>
     // =========================================================================
-    // 1. KONFIGURASI FIREBASE REALTIME DATABASE & MONITOR KONEKSI NYATA (.info/connected)
+    // 1. KONFIGURASI FIREBASE REALTIME DATABASE & MONITOR KONEKSI NYATA
     // =========================================================================
     const firebaseConfig = {
       apiKey: "AIzaSyBJiSmhWsMGlu5AqEZeBqQcELDd_wUqt5U",
@@ -599,7 +605,6 @@
         rootRoomsRef = firebase.database().ref("turnamen_rooms");
         isFirebaseInitialized = true;
 
-        // Pantau status koneksi socket Firebase secara real-time
         firebase.database().ref(".info/connected").on("value", (snap) => {
           isCloudConnected = !!snap.val();
           const dot = document.getElementById("connStatusDot");
@@ -607,7 +612,6 @@
           if (isCloudConnected) {
             dot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
             txt.textContent = "Terhubung Cloud Firebase (Online)";
-            // Jika Host sedang aktif membuka PIN, pastikan data PIN tersinkron ke Cloud saat koneksi pulih
             if (sessionAuth.hostLoggedIn && sessionAuth.activePin) {
               persistState();
             }
@@ -1088,7 +1092,8 @@
       activePin: null,
       publicJoined: false,
       hostLoggedIn: false,
-      judgeNumber: null
+      judgeNumber: null,
+      showResumePin: false
     };
 
     function getConfiguredDurationSec() {
@@ -1096,12 +1101,12 @@
       return dur > 0 ? dur : DEFAULT_MATCH_DURATION_SEC;
     }
 
-    function createDefaultState(pin) {
+    function createDefaultState(pin, customHostPass) {
       const teams = ["Tim Alpha", "Tim Bravo", "Tim Charlie", "Tim Delta", "Tim Echo", "Tim Foxtrot"];
       return {
         roomPin: pin || generateRandomPin(),
         eventTitle: "TURNAMEN TAKTIS 6 TIM",
-        hostPassword: "admin",
+        hostPassword: customHostPass || "admin",
         judgeCount: 2,
         globalJudgePassword: "juri",
         judgePasswords: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
@@ -1191,7 +1196,6 @@
       return null;
     }
 
-    // Ambil data room dengan timeout & deteksi error permission Firebase
     async function fetchRoomStateByPin(pin) {
       if (isFirebaseInitialized && rootRoomsRef) {
         try {
@@ -1256,7 +1260,7 @@
       if (!badge) return;
       if (status === "ok") {
         badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-        badge.textContent = text || "Tersinkron ke Cloud (Perangkat Lain Siap Masuk)";
+        badge.textContent = text || "Tersinkron ke Cloud (Siap Diakses Perangkat Lain)";
       } else if (status === "err") {
         badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40";
         badge.textContent = text || "Gagal Simpan ke Cloud (Hanya Lokal)";
@@ -1605,7 +1609,7 @@
     }
 
     // =========================================================================
-    // 7. NAVIGASI ROLE & AUTENTIKASI BERBASIS ROOM PIN
+    // 7. NAVIGASI ROLE & AUTENTIKASI BERBASIS ROOM PIN OTOMATIS
     // =========================================================================
     function switchRole(role) {
       sessionAuth.role = role;
@@ -1622,13 +1626,29 @@
       if (sessionAuth.activePin) {
         const pubPinEl = document.getElementById("publicPinInput");
         const judgePinEl = document.getElementById("judgePinInput");
-        const hostPinEl = document.getElementById("hostPinInput");
         if (pubPinEl && !pubPinEl.value) pubPinEl.value = sessionAuth.activePin;
         if (judgePinEl && !judgePinEl.value) judgePinEl.value = sessionAuth.activePin;
-        if (hostPinEl && !hostPinEl.value) hostPinEl.value = sessionAuth.activePin;
       }
 
       renderAll();
+    }
+
+    function toggleResumePinInput() {
+      sessionAuth.showResumePin = !sessionAuth.showResumePin;
+      const box = document.getElementById("resumePinContainer");
+      const btn = document.getElementById("toggleResumePinBtn");
+      const submitBtn = document.getElementById("hostLoginBtn");
+      const inputEl = document.getElementById("hostResumePinInput");
+
+      box.classList.toggle("hidden", !sessionAuth.showResumePin);
+      if (sessionAuth.showResumePin) {
+        btn.textContent = "Batal, buat PIN baru otomatis";
+        submitBtn.textContent = "Buka Sesi PIN Lama";
+      } else {
+        btn.textContent = "Lanjutkan sesi PIN lama?";
+        submitBtn.textContent = "Masuk & Buat PIN Otomatis";
+        if (inputEl) inputEl.value = "";
+      }
     }
 
     // --- A. JOIN LAYAR UMUM DENGAN PIN ---
@@ -1654,7 +1674,7 @@
       if (!res.data) {
         errEl.textContent = res.error
           ? res.error
-          : `PIN ${pin} belum ditemukan di server Cloud. Pastikan Host sudah masuk dengan PIN tersebut dan tidak ada peringatan merah di perangkat Host.`;
+          : `PIN ${pin} belum ditemukan di server Cloud. Pastikan Host sudah masuk dan tidak ada peringatan merah di perangkat Host.`;
         errEl.classList.remove("hidden");
         return;
       }
@@ -1675,44 +1695,63 @@
       renderAll();
     }
 
-    // --- B. LOGIN / BUAT PIN HOST ---
+    // --- B. LOGIN & BUAT PIN OTOMATIS HOST ---
     async function handleHostLogin(e) {
       e.preventDefault();
-      const rawPin = normalizePinString(document.getElementById("hostPinInput").value);
       const passInput = document.getElementById("hostPasswordInput").value;
+      const resumePin = sessionAuth.showResumePin
+        ? normalizePinString(document.getElementById("hostResumePinInput").value)
+        : "";
       const errEl = document.getElementById("hostLoginError");
       const btnEl = document.getElementById("hostLoginBtn");
+
+      if (!passInput) {
+        errEl.textContent = "Masukkan Password Host.";
+        errEl.classList.remove("hidden");
+        return;
+      }
 
       btnEl.disabled = true;
       btnEl.textContent = "Menghubungkan Sesi Cloud...";
 
-      if (rawPin) {
-        const res = await fetchRoomStateByPin(rawPin);
+      if (resumePin) {
+        const res = await fetchRoomStateByPin(resumePin);
         btnEl.disabled = false;
-        btnEl.textContent = "Buka / Buat Sesi Host";
+        btnEl.textContent = "Buka Sesi PIN Lama";
 
-        if (res.data) {
-          if (passInput !== res.data.hostPassword) {
-            errEl.textContent = `Password Host salah untuk PIN ${rawPin}.`;
-            errEl.classList.remove("hidden");
-            return;
-          }
-          appState = res.data;
-        } else {
-          appState = createDefaultState(rawPin);
-          appState.hostPassword = passInput || "admin";
+        if (!res.data) {
+          errEl.textContent = `Sesi dengan PIN ${resumePin} tidak ditemukan.`;
+          errEl.classList.remove("hidden");
+          return;
+        }
+        if (passInput !== res.data.hostPassword) {
+          errEl.textContent = `Password Host salah untuk PIN ${resumePin}.`;
+          errEl.classList.remove("hidden");
+          return;
         }
 
+        appState = res.data;
         errEl.classList.add("hidden");
         document.getElementById("hostPasswordInput").value = "";
         sessionAuth.hostLoggedIn = true;
         sessionAuth.publicJoined = true;
-        subscribeToRoomPin(rawPin);
+        subscribeToRoomPin(resumePin);
         await persistState();
       } else {
+        // Validasi password dengan sesi default ("admin" atau password terakhir yang tersimpan di lokal)
+        const expectedPass = appState?.hostPassword || "admin";
+        if (passInput !== expectedPass) {
+          btnEl.disabled = false;
+          btnEl.textContent = "Masuk & Buat PIN Otomatis";
+          errEl.textContent = "Password Host salah.";
+          errEl.classList.remove("hidden");
+          return;
+        }
+
+        // Buat PIN 6 digit baru secara otomatis
         let newPin = generateRandomPin();
         if (isFirebaseInitialized && rootRoomsRef) {
-          for (let attempt = 0; attempt < 3; attempt++) {
+          for (let attempt = 0; attempt < 4; attempt++) {
             const check = await fetchRoomStateByPin(newPin);
             if (!check.data) break;
             newPin = generateRandomPin();
@@ -1720,10 +1759,9 @@
         }
 
         btnEl.disabled = false;
-        btnEl.textContent = "Buka / Buat Sesi Host";
+        btnEl.textContent = "Masuk & Buat PIN Otomatis";
 
-        appState = createDefaultState(newPin);
-        appState.hostPassword = passInput || "admin";
+        appState = createDefaultState(newPin, passInput);
 
         errEl.classList.add("hidden");
         document.getElementById("hostPasswordInput").value = "";
@@ -1735,14 +1773,13 @@
     }
 
     function generateNewHostPinSession() {
-      if (!confirm("Buat PIN Turnamen baru (seperti sesi baru Kahoot)?")) return;
+      if (!confirm("Acak dan buat PIN Turnamen 6 digit baru?")) return;
       stopExternalTenseAudio();
       stopExternalTickAudio();
       stopBgmTenseLoop();
       const newPin = generateRandomPin();
       const keepHostPass = appState.hostPassword || "admin";
-      appState = createDefaultState(newPin);
-      appState.hostPassword = keepHostPass;
+      appState = createDefaultState(newPin, keepHostPass);
       lastSoundedSecond = null;
       lastKnownTimerRunning = false;
       subscribeToRoomPin(newPin);
@@ -1985,8 +2022,7 @@
         stopExternalTickAudio();
         stopBgmTenseLoop();
         const keepHostPass = appState.hostPassword || "admin";
-        appState = createDefaultState(pin);
-        appState.hostPassword = keepHostPass;
+        appState = createDefaultState(pin, keepHostPass);
         lastSoundedSecond = null;
         lastKnownTimerRunning = false;
         persistState();
@@ -2246,13 +2282,13 @@
       document.getElementById("cfgJudgeCount").value = appState.judgeCount || 2;
 
       const count = Number(appState.judgeCount) || 2;
-      let indHtml = `<div class="text-xs text-slate-400 mb-1">Password Khusus Per Juri (Kosongkan jika pakai password global):</div><div class="grid grid-cols-2 sm:grid-cols-3 gap-2">`;
+      let indHtml = `<div class="text-xs text-slate-400 mb-1">Password Khusus Per Juri (Opsional):</div><div class="grid grid-cols-2 sm:grid-cols-3 gap-2">`;
       for (let j = 1; j <= count; j++) {
         const curP = (appState.judgePasswords && appState.judgePasswords[j]) || "";
         indHtml += `
           <div>
             <label class="text-[11px] text-slate-400">Juri ${j}</label>
-            <input type="password" value="${curP}" placeholder="Global" onchange="saveIndividualJudgePass(${j}, this.value)"
+            <input type="password" value="${curP}" autocomplete="off" onchange="saveIndividualJudgePass(${j}, this.value)"
               class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs" />
           </div>
         `;
