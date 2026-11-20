@@ -21,7 +21,6 @@
     }
     .timer-urgent { animation: pulseUrgent 0.6s infinite; }
 
-    /* Animasi Podium 3 Juara */
     @keyframes podiumRise {
       0% { opacity: 0; transform: translateY(28px) scale(0.96); }
       100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -64,7 +63,7 @@
           </div>
           <div class="flex items-center gap-2 text-xs text-slate-400">
             <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
-            <span id="connStatusText">Menghubungkan ke Firebase...</span>
+            <span id="connStatusText">Memeriksa koneksi Cloud Firebase...</span>
           </div>
         </div>
       </div>
@@ -93,6 +92,18 @@
     </div>
   </header>
 
+  <!-- BANNER PERINGATAN JIKA FIREBASE WRITE/READ DITOLAK -->
+  <div id="firebaseErrorBanner" class="hidden bg-rose-950/95 border-b border-rose-500/60 px-4 py-3 text-xs text-rose-200">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div id="firebaseErrorText" class="font-semibold">
+        Gagal menyinkronkan ke Firebase. Periksa koneksi internet atau Firebase Realtime Database Rules.
+      </div>
+      <button onclick="retryCloudSync()" class="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold shrink-0">
+        Coba Sinkron Ulang
+      </button>
+    </div>
+  </div>
+
   <!-- MAIN CONTENT CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
 
@@ -100,7 +111,6 @@
     <!-- 1. LAYAR UMUM (JOIN PIN + PROYEKTOR / PENONTON)           -->
     <!-- ========================================================= -->
     <section id="view-public" class="space-y-6">
-      <!-- FORM MASUK PIN LAYAR UMUM (ALA KAHOOT) -->
       <div id="publicPinGateBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl text-center border-indigo-500/30">
         <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 font-black text-2xl mb-4">
           #
@@ -111,7 +121,7 @@
           <input type="text" id="publicPinInput" inputmode="numeric" maxlength="6" required autocomplete="off"
             placeholder="PIN 6 DIGIT"
             class="w-full px-4 py-3.5 rounded-xl bg-slate-950 border-2 border-slate-700 text-center font-mono-timer text-2xl md:text-3xl font-black tracking-[0.25em] text-amber-400 focus:outline-none focus:border-indigo-500" />
-          <p id="publicPinError" class="text-xs text-rose-400 hidden">PIN tidak ditemukan atau belum dibuat oleh Host.</p>
+          <p id="publicPinError" class="text-xs text-rose-400 hidden leading-relaxed"></p>
           <button type="submit" id="publicJoinBtn" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-sm text-white transition shadow-lg shadow-indigo-600/30">
             Hubungkan ke Layar Turnamen
           </button>
@@ -120,7 +130,6 @@
 
       <!-- KONTEN UTAMA LAYAR UMUM (SETELAH PIN TERHUBUNG) -->
       <div id="publicDashboard" class="hidden space-y-6">
-        <!-- BAR INFO PIN AKTIF LAYAR UMUM -->
         <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-xl">
           <div class="flex items-center gap-2 text-xs">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -142,7 +151,6 @@
             <span class="text-xs text-slate-400">Menampilkan Nilai Akhir (Rata-Rata Juri)</span>
           </div>
 
-          <!-- TIMER BESAR LAYAR UMUM -->
           <div class="flex justify-center mb-6">
             <div id="pubTimerBox" class="px-8 py-4 rounded-2xl bg-slate-950/90 border-2 border-indigo-500/40 text-center shadow-inner">
               <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">SISA WAKTU PERTANDINGAN</div>
@@ -151,9 +159,7 @@
             </div>
           </div>
 
-          <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-2">
-            <!-- Rendered by JS -->
-          </div>
+          <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-2"></div>
         </div>
 
         <!-- KLASEMEN GRUP A & B -->
@@ -201,7 +207,7 @@
           <div id="pubBracketGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
         </div>
 
-        <!-- PODIUM 3 JUARA (DENGAN ANIMASI BERTINGKAT) -->
+        <!-- PODIUM 3 JUARA -->
         <div id="pub-section-podium" class="glass-card rounded-2xl p-6 overflow-hidden">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-base font-bold text-yellow-400 uppercase tracking-wider">Podium Juara Turnamen (Top 3)</h2>
@@ -222,7 +228,6 @@
     <!-- 2. TAMPILAN HOST (BUAT / BUKA PIN + KONTROL PENUH)        -->
     <!-- ========================================================= -->
     <section id="view-host" class="hidden space-y-6">
-      <!-- FORM LOGIN & PILIH / BUAT PIN HOST -->
       <div id="hostLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl space-y-5">
         <div>
           <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
@@ -251,10 +256,14 @@
 
       <!-- PANEL UTAMA HOST -->
       <div id="hostDashboard" class="hidden space-y-6">
-        <!-- BANNER ROOM PIN ALA KAHOOT -->
         <div class="glass-card rounded-2xl p-5 border-amber-500/40 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-amber-950/30 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ROOM PIN TURNAMEN AKTIF (BAGIKAN KE UMUM & JURI)</span>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ROOM PIN TURNAMEN AKTIF</span>
+              <span id="hostCloudSyncBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                Menyimpan ke Cloud...
+              </span>
+            </div>
             <div class="flex flex-wrap items-center gap-3 mt-1">
               <span id="hostActivePinDisplay" class="font-mono-timer text-4xl md:text-5xl font-black tracking-[0.2em] text-white">------</span>
               <button onclick="copyActivePin()" id="copyPinBtn" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition">
@@ -276,7 +285,7 @@
           </div>
         </div>
 
-        <!-- KONTROL TIMER PERTANDINGAN DINAMIS (3 MENIT, 5 MENIT, MANUAL) -->
+        <!-- KONTROL TIMER PERTANDINGAN DINAMIS -->
         <div class="glass-card rounded-2xl p-5 border-amber-500/30 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-4">
@@ -315,7 +324,7 @@
             </div>
           </div>
 
-          <!-- UPLOAD / MUAT LANGSUNG AUDIO DARI FILE VIDEO/AUDIO (GONG, DETIK, SOUND TEGANG, EMERGENCY) -->
+          <!-- UPLOAD AUDIO/VIDEO -->
           <div class="pt-3 border-t border-slate-800/90 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
               <div class="text-xs min-w-0">
@@ -374,7 +383,6 @@
               </button>
             </div>
 
-            <!-- INPUT MANUAL MENIT & DETIK -->
             <div class="flex flex-wrap items-center gap-2 bg-slate-950/90 px-3 py-2 rounded-xl border border-slate-800">
               <span class="text-xs font-semibold text-slate-300">Manual:</span>
               <div class="flex items-center gap-1">
@@ -394,9 +402,8 @@
           </div>
         </div>
 
-        <!-- BARIS 1: CHECKLIST LAYAR UMUM & PENGATURAN JURI/KEAMANAN -->
+        <!-- CHECKLIST LAYAR UMUM & PENGATURAN JURI/KEAMANAN -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- CHECKLIST TAMPILAN LAYAR UMUM -->
           <div class="glass-card rounded-2xl p-5 space-y-3">
             <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-400">1. Checklist Tampilan Layar UMUM (Real-Time)</h3>
             <p class="text-xs text-slate-400">Centang bagian yang ingin ditampilkan pada proyektor penonton:</p>
@@ -424,7 +431,6 @@
             </div>
           </div>
 
-          <!-- PENGATURAN JUMLAH JURI & PASSWORD -->
           <div class="glass-card rounded-2xl p-5 space-y-4">
             <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">2. Konfigurasi Juri & Password Akses</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -460,7 +466,7 @@
           </div>
         </div>
 
-        <!-- BARIS 2: SETUP 6 TIM & UNDIAN GRUP -->
+        <!-- SETUP 6 TIM & UNDIAN GRUP -->
         <div class="glass-card rounded-2xl p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">3. Daftar 6 Tim & Undian Grup (Tahap 1)</h3>
@@ -482,7 +488,7 @@
           </div>
         </div>
 
-        <!-- BARIS 3: KONTROL PERTANDINGAN & MONITOR SKOR JURI -->
+        <!-- KONTROL PERTANDINGAN & MONITOR SKOR JURI -->
         <div class="glass-card rounded-2xl p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -503,7 +509,6 @@
     <!-- 3. TAMPILAN JURI (JOIN PIN + LOGIN + TERMINAL PENILAIAN)  -->
     <!-- ========================================================= -->
     <section id="view-judge" class="hidden space-y-6">
-      <!-- FORM LOGIN & PIN JURI -->
       <div id="judgeLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl">
         <h2 class="text-xl font-extrabold text-white mb-1">Terminal Penilaian Juri</h2>
         <p class="text-xs text-slate-400 mb-6">Masukkan <b>PIN Turnamen</b>, nomor juri Anda, dan password dari Host.</p>
@@ -530,7 +535,7 @@
             <input type="password" id="judgePasswordInput" required autocomplete="off"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500" />
           </div>
-          <p id="judgeLoginError" class="text-xs text-rose-400 hidden">PIN tidak ditemukan, nomor juri tidak aktif, atau password juri salah.</p>
+          <p id="judgeLoginError" class="text-xs text-rose-400 hidden"></p>
           <button type="submit" id="judgeLoginBtn" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white transition">
             Masuk Terminal Juri
           </button>
@@ -551,7 +556,6 @@
             </div>
           </div>
 
-          <!-- TIMER DI LAYAR JURI -->
           <div class="flex items-center gap-3">
             <div id="judgeTimerBox" class="px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center">
               <div class="text-[10px] font-bold uppercase text-slate-400">SISA WAKTU</div>
@@ -571,7 +575,7 @@
 
   <script>
     // =========================================================================
-    // 1. KONFIGURASI FIREBASE REALTIME DATABASE & ROOM PIN ENGINE (ALA KAHOOT)
+    // 1. KONFIGURASI FIREBASE REALTIME DATABASE & MONITOR KONEKSI NYATA (.info/connected)
     // =========================================================================
     const firebaseConfig = {
       apiKey: "AIzaSyBJiSmhWsMGlu5AqEZeBqQcELDd_wUqt5U",
@@ -586,19 +590,61 @@
 
     let rootRoomsRef = null;
     let currentRoomRef = null;
-    let isFirebaseReady = false;
+    let isFirebaseInitialized = false;
+    let isCloudConnected = false;
 
     if (firebaseConfig.databaseURL && firebaseConfig.apiKey) {
       try {
         firebase.initializeApp(firebaseConfig);
         rootRoomsRef = firebase.database().ref("turnamen_rooms");
-        isFirebaseReady = true;
-        document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
-        document.getElementById("connStatusText").textContent = "Terhubung Cloud Firebase (Siap PIN)";
+        isFirebaseInitialized = true;
+
+        // Pantau status koneksi socket Firebase secara real-time
+        firebase.database().ref(".info/connected").on("value", (snap) => {
+          isCloudConnected = !!snap.val();
+          const dot = document.getElementById("connStatusDot");
+          const txt = document.getElementById("connStatusText");
+          if (isCloudConnected) {
+            dot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
+            txt.textContent = "Terhubung Cloud Firebase (Online)";
+            // Jika Host sedang aktif membuka PIN, pastikan data PIN tersinkron ke Cloud saat koneksi pulih
+            if (sessionAuth.hostLoggedIn && sessionAuth.activePin) {
+              persistState();
+            }
+          } else {
+            dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block";
+            txt.textContent = "Menghubungkan ke Server Firebase...";
+          }
+        });
       } catch (e) {
         console.error("Firebase init error:", e);
         document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
-        document.getElementById("connStatusText").textContent = "Gagal Koneksi Firebase (Mode Lokal)";
+        document.getElementById("connStatusText").textContent = "Gagal Inisialisasi Firebase";
+      }
+    }
+
+    function showFirebaseAlert(msg) {
+      const banner = document.getElementById("firebaseErrorBanner");
+      const textEl = document.getElementById("firebaseErrorText");
+      if (banner && textEl) {
+        textEl.textContent = msg;
+        banner.classList.remove("hidden");
+      }
+    }
+
+    function hideFirebaseAlert() {
+      const banner = document.getElementById("firebaseErrorBanner");
+      if (banner) banner.classList.add("hidden");
+    }
+
+    function retryCloudSync() {
+      hideFirebaseAlert();
+      if (sessionAuth.activePin) {
+        if (sessionAuth.hostLoggedIn) {
+          persistState();
+        } else {
+          subscribeToRoomPin(sessionAuth.activePin);
+        }
       }
     }
 
@@ -611,7 +657,7 @@
     }
 
     // =========================================================================
-    // 2. DEFINISI RUBRIK PENALTI (SESUAI GAMBAR 1)
+    // 2. DEFINISI RUBRIK PENALTI
     // =========================================================================
     const PENALTY_RULES = [
       { key: "p_early", label: "Robot bergerak sebelum gong berbunyi", points: 5, badge: "-5" },
@@ -676,7 +722,7 @@
     }
 
     // =========================================================================
-    // 3. SISTEM MEDIA AUDIO PARALEL (GONG, DETIK, SOUND TEGANG MATI <=10s, EMERGENCY)
+    // 3. SISTEM MEDIA AUDIO PARALEL
     // =========================================================================
     const GONG_AUDIO_SRC = "gong.mp3";
     const TICK_AUDIO_SRC = "tick.mp3";
@@ -782,12 +828,8 @@
         const playPromise = externalBgmTenseAudio.play();
         if (playPromise !== undefined) {
           playPromise
-            .then(() => {
-              isBgmTensePlaying = true;
-            })
-            .catch(() => {
-              isBgmTensePlaying = false;
-            });
+            .then(() => { isBgmTensePlaying = true; })
+            .catch(() => { isBgmTensePlaying = false; });
         }
       } catch (err) {
         isBgmTensePlaying = false;
@@ -871,15 +913,12 @@
     function playLoudGong() {
       if (isAudioMuted) return;
       ensureAudioContext();
-
       try {
         externalGongAudio.currentTime = 0;
         externalGongAudio.volume = 1.0;
         const playPromise = externalGongAudio.play();
         if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            playSynthGongFallback();
-          });
+          playPromise.catch(() => playSynthGongFallback());
         }
       } catch (err) {
         playSynthGongFallback();
@@ -890,7 +929,6 @@
       if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
       const duration = 4.6;
-
       const masterGain = audioCtx.createGain();
       masterGain.gain.setValueAtTime(0.95, now);
       masterGain.gain.exponentialRampToValueAtTime(0.0008, now + duration);
@@ -912,38 +950,24 @@
         osc.frequency.setValueAtTime(p.freq * 1.04, now);
         osc.frequency.exponentialRampToValueAtTime(p.freq, now + 0.08);
         osc.frequency.exponentialRampToValueAtTime(p.freq * p.pitchDrop, now + p.decay);
-
         g.gain.setValueAtTime(0.001, now);
         g.gain.linearRampToValueAtTime(p.amp, now + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0005, now + p.decay);
-
         osc.connect(g);
         g.connect(masterGain);
         osc.start(now);
         osc.stop(now + p.decay + 0.05);
       });
-
-      const lfo = audioCtx.createOscillator();
-      const lfoGain = audioCtx.createGain();
-      lfo.frequency.setValueAtTime(2.6, now);
-      lfoGain.gain.setValueAtTime(0.25, now);
-      lfo.connect(lfoGain);
-      lfoGain.connect(masterGain.gain);
-      lfo.start(now);
-      lfo.stop(now + duration);
     }
 
     function playNormalTick() {
       if (isAudioMuted) return;
       ensureAudioContext();
-
       try {
         externalTickAudio.currentTime = 0;
         const playPromise = externalTickAudio.play();
         if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            playSynthNormalTickFallback();
-          });
+          playPromise.catch(() => playSynthNormalTickFallback());
         }
       } catch (err) {
         playSynthNormalTickFallback();
@@ -971,9 +995,7 @@
       stopExternalTickAudio();
       stopBgmTenseLoop();
 
-      if (isTenseLoopPlaying && !externalTenseAudio.paused) {
-        return;
-      }
+      if (isTenseLoopPlaying && !externalTenseAudio.paused) return;
 
       try {
         if (secLeft === 10 || !isTenseLoopPlaying) {
@@ -983,9 +1005,7 @@
           const playPromise = externalTenseAudio.play();
           if (playPromise !== undefined) {
             playPromise
-              .then(() => {
-                isTenseLoopPlaying = true;
-              })
+              .then(() => { isTenseLoopPlaying = true; })
               .catch(() => {
                 isTenseLoopPlaying = false;
                 playSynthEmergencyFallback(secLeft);
@@ -1002,7 +1022,6 @@
     function playSynthEmergencyFallback(secLeft) {
       if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
-
       const patterns = secLeft <= 3
         ? [
             { t: 0.00, f1: 1480, f2: 1180, dur: 0.14 },
@@ -1019,37 +1038,25 @@
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = "sawtooth";
-
         const filter = audioCtx.createBiquadFilter();
         filter.type = "bandpass";
         filter.frequency.setValueAtTime(1400, now + p.t);
         filter.Q.setValueAtTime(2.5, now + p.t);
-
         osc.frequency.setValueAtTime(p.f1, now + p.t);
         osc.frequency.setValueAtTime(p.f2, now + p.t + p.dur * 0.5);
-
         gain.gain.setValueAtTime(0.001, now + p.t);
         gain.gain.linearRampToValueAtTime(0.55, now + p.t + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.001, now + p.t + p.dur);
-
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(audioCtx.destination);
-
         osc.start(now + p.t);
         osc.stop(now + p.t + p.dur + 0.02);
       });
     }
 
-    function testGongSound() {
-      unlockAllAudio();
-      playLoudGong();
-    }
-
-    function testTickSound() {
-      unlockAllAudio();
-      playNormalTick();
-    }
+    function testGongSound() { unlockAllAudio(); playLoudGong(); }
+    function testTickSound() { unlockAllAudio(); playNormalTick(); }
 
     function test10SecondsCountdown() {
       unlockAllAudio();
@@ -1070,7 +1077,7 @@
     }
 
     // =========================================================================
-    // 4. STATE PER ROOM PIN, SINKRONISASI REAL-TIME & AUTHENTICATION
+    // 4. STATE PER ROOM PIN, SINKRONISASI CLOUD & FALLBACK ANTI-GAGAL
     // =========================================================================
     const DEFAULT_MATCH_DURATION_SEC = 300;
     const ROOM_STORAGE_PREFIX = "turnamen_room_pin_";
@@ -1184,21 +1191,33 @@
       return null;
     }
 
+    // Ambil data room dengan timeout & deteksi error permission Firebase
     async function fetchRoomStateByPin(pin) {
-      if (isFirebaseReady && rootRoomsRef) {
+      if (isFirebaseInitialized && rootRoomsRef) {
         try {
-          const snap = await rootRoomsRef.child(pin).once("value");
+          const snap = await Promise.race([
+            rootRoomsRef.child(pin).once("value"),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("TIMEOUT")), 6000))
+          ]);
+          hideFirebaseAlert();
           const val = snap.val();
           if (val) {
             val.timer = normalizeTimerState(val.timer);
             localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(val));
-            return val;
+            return { data: val, error: null };
           }
+          return { data: null, error: null };
         } catch (err) {
           console.error("Fetch PIN error:", err);
+          const msg = (err && err.code === "PERMISSION_DENIED")
+            ? "Akses baca Firebase ditolak (PERMISSION_DENIED). Pastikan Rules Realtime Database mengizinkan .read: true."
+            : "Koneksi ke server Firebase lambat/terputus. Periksa jaringan internet perangkat ini.";
+          showFirebaseAlert(msg);
+          const localFallback = loadLocalRoomState(pin);
+          return { data: localFallback, error: msg };
         }
       }
-      return loadLocalRoomState(pin);
+      return { data: loadLocalRoomState(pin), error: null };
     }
 
     function subscribeToRoomPin(pin) {
@@ -1207,16 +1226,20 @@
         currentRoomRef = null;
       }
       sessionAuth.activePin = pin;
-      if (isFirebaseReady && rootRoomsRef && pin) {
+      if (isFirebaseInitialized && rootRoomsRef && pin) {
         currentRoomRef = rootRoomsRef.child(pin);
         currentRoomRef.on("value", (snapshot) => {
           const val = snapshot.val();
           if (val) {
+            hideFirebaseAlert();
             val.timer = normalizeTimerState(val.timer);
             appState = val;
             localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(appState));
             renderAll();
           }
+        }, (err) => {
+          console.error("Realtime listener error:", err);
+          showFirebaseAlert("Sinkronisasi Realtime Firebase terblokir (Permission Denied). Atur Rules Firebase ke publik (.read: true, .write: true).");
         });
       }
     }
@@ -1228,16 +1251,48 @@
       }
     }
 
+    function updateHostSyncBadge(status, text) {
+      const badge = document.getElementById("hostCloudSyncBadge");
+      if (!badge) return;
+      if (status === "ok") {
+        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        badge.textContent = text || "Tersinkron ke Cloud (Perangkat Lain Siap Masuk)";
+      } else if (status === "err") {
+        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40";
+        badge.textContent = text || "Gagal Simpan ke Cloud (Hanya Lokal)";
+      } else {
+        badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40";
+        badge.textContent = text || "Menyimpan ke Cloud...";
+      }
+    }
+
     function persistState() {
       const pin = sessionAuth.activePin || appState.roomPin;
-      if (!pin) return;
+      if (!pin) return Promise.resolve(false);
       appState.roomPin = pin;
       localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(appState));
       bc.postMessage({ pin, state: appState });
-      if (isFirebaseReady && rootRoomsRef) {
-        rootRoomsRef.child(pin).set(appState);
-      }
       renderAll();
+
+      if (isFirebaseInitialized && rootRoomsRef) {
+        updateHostSyncBadge("syncing", "Menyimpan ke Cloud...");
+        return rootRoomsRef.child(pin).set(appState)
+          .then(() => {
+            hideFirebaseAlert();
+            updateHostSyncBadge("ok", "Tersinkron ke Cloud (Siap Diakses Perangkat Lain)");
+            return true;
+          })
+          .catch((err) => {
+            console.error("Firebase write error:", err);
+            const reason = (err && err.code === "PERMISSION_DENIED")
+              ? "Firebase menolak penyimpanan (PERMISSION_DENIED). Buka Firebase Console > Realtime Database > Rules dan ubah .read & .write menjadi true."
+              : "Gagal mengirim data PIN ke Firebase. Periksa koneksi internet Host.";
+            showFirebaseAlert(reason);
+            updateHostSyncBadge("err", "Gagal Simpan Cloud!");
+            return false;
+          });
+      }
+      return Promise.resolve(false);
     }
 
     bc.onmessage = (ev) => {
@@ -1414,7 +1469,6 @@
       if (hostDisp) hostDisp.textContent = formatted;
       if (judgeDisp) judgeDisp.textContent = formatted;
 
-      // Kontrol Sound Tegang: Hidup saat t.isRunning & rem > 10, MATI otomatis saat rem <= 10 atau tidak running
       if (!t.isRunning) {
         if (isTenseLoopPlaying) stopExternalTenseAudio();
         if (isBgmTensePlaying && !isTestingBgmTense) stopBgmTenseLoop();
@@ -1478,7 +1532,7 @@
             endTimestamp: null,
             finished: true
           };
-          if (sessionAuth.hostLoggedIn || !isFirebaseReady) {
+          if (sessionAuth.hostLoggedIn || !isFirebaseInitialized) {
             persistState();
           }
         }
@@ -1551,7 +1605,7 @@
     }
 
     // =========================================================================
-    // 7. NAVIGASI ROLE & AUTENTIKASI BERBASIS ROOM PIN (SEPERTI KAHOOT)
+    // 7. NAVIGASI ROLE & AUTENTIKASI BERBASIS ROOM PIN
     // =========================================================================
     function switchRole(role) {
       sessionAuth.role = role;
@@ -1565,7 +1619,6 @@
         }
       });
 
-      // Otomatis isi kotak PIN di role lain jika perangkat ini sudah pernah masuk ke sebuah PIN
       if (sessionAuth.activePin) {
         const pubPinEl = document.getElementById("publicPinInput");
         const judgePinEl = document.getElementById("judgePinInput");
@@ -1586,26 +1639,28 @@
       const btnEl = document.getElementById("publicJoinBtn");
 
       if (pin.length < 4) {
-        errEl.textContent = "Masukkan PIN Turnamen yang valid dari Host.";
+        errEl.textContent = "Masukkan PIN Turnamen 6 digit yang valid dari Host.";
         errEl.classList.remove("hidden");
         return;
       }
 
       btnEl.disabled = true;
-      btnEl.textContent = "Menghubungkan...";
+      btnEl.textContent = "Mencari Room PIN di Cloud...";
 
-      const existing = await fetchRoomStateByPin(pin);
+      const res = await fetchRoomStateByPin(pin);
       btnEl.disabled = false;
       btnEl.textContent = "Hubungkan ke Layar Turnamen";
 
-      if (!existing) {
-        errEl.textContent = `PIN ${pin} tidak ditemukan. Pastikan Host sudah membuka sesi dengan PIN tersebut.`;
+      if (!res.data) {
+        errEl.textContent = res.error
+          ? res.error
+          : `PIN ${pin} belum ditemukan di server Cloud. Pastikan Host sudah masuk dengan PIN tersebut dan tidak ada peringatan merah di perangkat Host.`;
         errEl.classList.remove("hidden");
         return;
       }
 
       errEl.classList.add("hidden");
-      appState = existing;
+      appState = res.data;
       sessionAuth.publicJoined = true;
       subscribeToRoomPin(pin);
       renderAll();
@@ -1629,23 +1684,21 @@
       const btnEl = document.getElementById("hostLoginBtn");
 
       btnEl.disabled = true;
-      btnEl.textContent = "Memverifikasi Sesi...";
+      btnEl.textContent = "Menghubungkan Sesi Cloud...";
 
       if (rawPin) {
-        // Membuka / melanjutkan PIN yang sudah ada (atau membuat baru dengan PIN spesifik tersebut)
-        const existing = await fetchRoomStateByPin(rawPin);
+        const res = await fetchRoomStateByPin(rawPin);
         btnEl.disabled = false;
         btnEl.textContent = "Buka / Buat Sesi Host";
 
-        if (existing) {
-          if (passInput !== existing.hostPassword) {
+        if (res.data) {
+          if (passInput !== res.data.hostPassword) {
             errEl.textContent = `Password Host salah untuk PIN ${rawPin}.`;
             errEl.classList.remove("hidden");
             return;
           }
-          appState = existing;
+          appState = res.data;
         } else {
-          // Buat sesi baru dengan PIN pilihan Host & password yang diinput
           appState = createDefaultState(rawPin);
           appState.hostPassword = passInput || "admin";
         }
@@ -1655,14 +1708,13 @@
         sessionAuth.hostLoggedIn = true;
         sessionAuth.publicJoined = true;
         subscribeToRoomPin(rawPin);
-        persistState();
+        await persistState();
       } else {
-        // Buat PIN 6 digit baru otomatis ala Kahoot
         let newPin = generateRandomPin();
-        if (isFirebaseReady && rootRoomsRef) {
-          for (let attempt = 0; attempt < 5; attempt++) {
+        if (isFirebaseInitialized && rootRoomsRef) {
+          for (let attempt = 0; attempt < 3; attempt++) {
             const check = await fetchRoomStateByPin(newPin);
-            if (!check) break;
+            if (!check.data) break;
             newPin = generateRandomPin();
           }
         }
@@ -1678,12 +1730,12 @@
         sessionAuth.hostLoggedIn = true;
         sessionAuth.publicJoined = true;
         subscribeToRoomPin(newPin);
-        persistState();
+        await persistState();
       }
     }
 
     function generateNewHostPinSession() {
-      if (!confirm("Buat PIN Turnamen baru (seperti sesi baru Kahoot)? Data sesi lama tetap tersimpan pada PIN sebelumnya.")) return;
+      if (!confirm("Buat PIN Turnamen baru (seperti sesi baru Kahoot)?")) return;
       stopExternalTenseAudio();
       stopExternalTickAudio();
       stopBgmTenseLoop();
@@ -1731,15 +1783,23 @@
       btnEl.disabled = true;
       btnEl.textContent = "Menghubungkan...";
 
-      const roomData = (sessionAuth.activePin === pin && appState?.roomPin === pin)
-        ? appState
-        : await fetchRoomStateByPin(pin);
+      let roomData = null;
+      let fetchErr = null;
+      if (sessionAuth.activePin === pin && appState?.roomPin === pin) {
+        roomData = appState;
+      } else {
+        const res = await fetchRoomStateByPin(pin);
+        roomData = res.data;
+        fetchErr = res.error;
+      }
 
       btnEl.disabled = false;
       btnEl.textContent = "Masuk Terminal Juri";
 
       if (!roomData) {
-        errEl.textContent = `PIN ${pin} tidak ditemukan. Periksa kembali angka PIN dari Host.`;
+        errEl.textContent = fetchErr
+          ? fetchErr
+          : `PIN ${pin} tidak ditemukan di server Cloud. Periksa kembali angka PIN dari Host.`;
         errEl.classList.remove("hidden");
         return;
       }
@@ -1783,7 +1843,7 @@
     }
 
     // =========================================================================
-    // 8. AKSI HOST (CHECKLIST, JURI, TIM, STATUS MATCH, BRACKET)
+    // 8. AKSI HOST
     // =========================================================================
     function updatePublicVisibility() {
       appState.publicVisibility = {
@@ -1934,7 +1994,7 @@
     }
 
     // =========================================================================
-    // 9. AKSI JURI (INPUT 3 TARGET TEMBAK, 1 BONUS, & 8 PELANGGARAN PENALTI)
+    // 9. AKSI JURI
     // =========================================================================
     function ensureJudgeRecordInitialized(matchId, jNum) {
       const match = appState.matches[matchId];
@@ -1958,7 +2018,6 @@
     function updateJudgeScore(matchId, jNum, field, deltaOrVal, isDirect = false) {
       const rec = ensureJudgeRecordInitialized(matchId, jNum);
       if (!rec || rec.locked) return;
-
       const cur = Number(rec[field]) || 0;
       const nextVal = isDirect ? Math.max(0, Number(deltaOrVal) || 0) : Math.max(0, cur + deltaOrVal);
       rec[field] = nextVal;
@@ -1968,13 +2027,11 @@
     function updateJudgePenaltyCount(matchId, jNum, side, ruleKey, deltaOrVal, isDirect = false) {
       const rec = ensureJudgeRecordInitialized(matchId, jNum);
       if (!rec || rec.locked) return;
-
       const targetObj = side === "A" ? rec.penDetailsA : rec.penDetailsB;
       const curCount = Number(targetObj[ruleKey]) || 0;
       const nextCount = isDirect
         ? Math.max(0, parseInt(deltaOrVal, 10) || 0)
         : Math.max(0, curCount + deltaOrVal);
-
       targetObj[ruleKey] = nextCount;
       persistState();
     }
@@ -2426,7 +2483,6 @@
       `;
     }
 
-    // Inisialisasi awal (menampilkan gerbang PIN Layar Umum)
     renderAll();
   </script>
 </body>
