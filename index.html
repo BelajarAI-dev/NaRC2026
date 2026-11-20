@@ -200,7 +200,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM & JURI: memutar audio eksternal gong saat mulai, audio menegangkan 10 detik terakhir, dan gong saat waktu habis.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM & JURI: memutar audio eksternal gong saat mulai, detak detik pertandingan (tick.mp3), audio menegangkan 10 detik terakhir, dan gong saat waktu habis.</p>
               </div>
             </div>
 
@@ -446,12 +446,16 @@
     // =========================================================================
     // 2. SISTEM MEDIA AUDIO EKSTERNAL + FALLBACK WEB AUDIO SYNTHESIZER
     // =========================================================================
-    // Letakkan file audio hasil ekstrak di folder yang sama dengan file HTML ini:
+    // Letakkan ketiga file audio ini di folder yang sama dengan file HTML ini:
     const GONG_AUDIO_SRC = "gong.mp3";
+    const TICK_AUDIO_SRC = "tick.mp3";
     const TENSE_AUDIO_SRC = "tense10s.mp3";
 
     const externalGongAudio = new Audio(GONG_AUDIO_SRC);
     externalGongAudio.preload = "auto";
+
+    const externalTickAudio = new Audio(TICK_AUDIO_SRC);
+    externalTickAudio.preload = "auto";
 
     const externalTenseAudio = new Audio(TENSE_AUDIO_SRC);
     externalTenseAudio.preload = "auto";
@@ -475,7 +479,7 @@
     // Unlock audio policy browser pada klik pertama
     function unlockAllAudio() {
       ensureAudioContext();
-      [externalGongAudio, externalTenseAudio].forEach(aud => {
+      [externalGongAudio, externalTickAudio, externalTenseAudio].forEach(aud => {
         if (aud && aud.readyState === 0) {
           aud.load();
         }
@@ -496,6 +500,7 @@
       isAudioMuted = !isAudioMuted;
       ensureAudioContext();
       externalGongAudio.muted = isAudioMuted;
+      externalTickAudio.muted = isAudioMuted;
       externalTenseAudio.muted = isAudioMuted;
 
       if (isAudioMuted) {
@@ -567,11 +572,26 @@
       });
     }
 
-    // Bunyi detik biasa (di atas 10 detik)
+    // 2. Bunyi Detik Pertandingan Normal (> 10 detik): memutar file eksternal tick.mp3 (fallback synth)
     function playNormalTick() {
       if (isAudioMuted) return;
       ensureAudioContext();
-      if (!audioCtx) return;
+
+      try {
+        externalTickAudio.currentTime = 0;
+        const playPromise = externalTickAudio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {
+            playSynthNormalTickFallback();
+          });
+        }
+      } catch (err) {
+        playSynthNormalTickFallback();
+      }
+    }
+
+    function playSynthNormalTickFallback() {
+      if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -585,12 +605,11 @@
       osc.stop(now + 0.065);
     }
 
-    // 2. Bunyi 10 detik terakhir: memutar file eksternal tense10s.mp3 (fallback synth)
+    // 3. Bunyi 10 detik terakhir: memutar file eksternal tense10s.mp3 (fallback synth)
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
 
-      // Jika file eksternal sudah sedang diputar kontinyu selama fase 10 detik terakhir, biarkan berlanjut
       if (isTenseLoopPlaying && !externalTenseAudio.paused) {
         return;
       }
@@ -658,13 +677,19 @@
     function testTimerSounds() {
       unlockAllAudio();
       stopExternalTenseAudio();
+      // 1. Tes Gong
       playLoudGong();
+      // 2. Tes Detik Normal
+      setTimeout(() => {
+        playNormalTick();
+      }, 1200);
+      // 3. Tes Audio Menegangkan 10 Detik Terakhir
       setTimeout(() => {
         playTenseCountdownSound(3);
         setTimeout(() => {
           stopExternalTenseAudio();
         }, 2500);
-      }, 1500);
+      }, 2200);
     }
 
     // =========================================================================
