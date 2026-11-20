@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Manajemen Turnamen — Multi-Role & Firebase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase App & Realtime Database SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #0b1120; color: #f8fafc; }
+    .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15); }
+    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header id="topNav" class="bg-slate-900/95 border-b border-slate-800 sticky top-0 z-50 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white shadow-lg shadow-indigo-500/30">
+          TM
+        </div>
+        <div>
+          <h1 id="headerEventTitle" class="font-extrabold text-base md:text-lg tracking-tight text-white">TURNAMEN 6 TIM</h1>
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+            <span id="connStatusText">Mode Lokal (Isi Firebase Config untuk Cloud)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROLE SWITCHER -->
+      <nav class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <button onclick="switchRole('public')" id="nav-public" class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition bg-indigo-600 text-white">
+          Layar UMUM
+        </button>
+        <button onclick="switchRole('host')" id="nav-host" class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-400 hover:text-white">
+          Tampilan HOST
+        </button>
+        <button onclick="switchRole('judge')" id="nav-judge" class="px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-400 hover:text-white">
+          Tampilan JURI
+        </button>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        <button onclick="toggleFullscreen()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">
+          Layar Penuh
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+
+    <!-- ========================================================= -->
+    <!-- 1. LAYAR UMUM (PROYEKTOR / PENONTON)                      -->
+    <!-- ========================================================= -->
+    <section id="view-public" class="space-y-6">
+      <!-- LIVE MATCH SPOTLIGHT -->
+      <div id="pub-section-live" class="glass-card rounded-2xl p-6 border-indigo-500/30 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-600 text-white animate-pulse">SEDANG BERTANDING • LIVE</span>
+            <span id="pubLiveStageLabel" class="text-xs font-semibold uppercase tracking-wider text-indigo-400">TAHAP 1 - GRUP A</span>
+          </div>
+          <span class="text-xs text-slate-400">Menampilkan Nilai Akhir (Rata-Rata Juri)</span>
+        </div>
+        <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-4">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- KLASEMEN GRUP A & B -->
+      <div id="pub-section-standings" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="glass-card rounded-2xl p-5">
+          <h2 class="text-base font-bold text-indigo-400 uppercase tracking-wider mb-3">Klasemen Grup A (Tahap 1)</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase">
+                  <th class="py-2.5 px-2">Pos</th>
+                  <th class="py-2.5 px-2">Tim</th>
+                  <th class="py-2.5 px-2 text-center">Main</th>
+                  <th class="py-2.5 px-2 text-right">Nilai Akhir</th>
+                  <th class="py-2.5 px-2 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="pubStandingsA" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <h2 class="text-base font-bold text-emerald-400 uppercase tracking-wider mb-3">Klasemen Grup B (Tahap 1)</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead>
+                <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase">
+                  <th class="py-2.5 px-2">Pos</th>
+                  <th class="py-2.5 px-2">Tim</th>
+                  <th class="py-2.5 px-2 text-center">Main</th>
+                  <th class="py-2.5 px-2 text-right">Nilai Akhir</th>
+                  <th class="py-2.5 px-2 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="pubStandingsB" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BAGAN UPPER & LOWER BRACKET -->
+      <div id="pub-section-bracket" class="glass-card rounded-2xl p-6">
+        <h2 class="text-base font-bold text-amber-400 uppercase tracking-wider mb-4">Tahap 2 — Upper & Lower Bracket Playoff</h2>
+        <div id="pubBracketGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- PODIUM JUARA -->
+      <div id="pub-section-podium" class="glass-card rounded-2xl p-6">
+        <h2 class="text-base font-bold text-yellow-400 uppercase tracking-wider mb-4">Podium Juara Turnamen</h2>
+        <div id="pubPodiumGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+      <!-- RIWAYAT PERTANDINGAN SELESAI -->
+      <div id="pub-section-history" class="glass-card rounded-2xl p-5">
+        <h2 class="text-base font-bold text-slate-300 uppercase tracking-wider mb-3">Hasil Pertandingan Selesai (Nilai Akhir)</h2>
+        <div id="pubCompletedList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 2. TAMPILAN HOST (LOGIN + KONTROL PENUH)                  -->
+    <!-- ========================================================= -->
+    <section id="view-host" class="hidden space-y-6">
+      <!-- FORM LOGIN HOST (TANPA PETUNJUK PASSWORD) -->
+      <div id="hostLoginBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl">
+        <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
+        <p class="text-xs text-slate-400 mb-6">Masukkan kredensial otorisasi penyelenggara untuk membuka panel kendali.</p>
+        <form onsubmit="handleHostLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Host</label>
+            <input type="password" id="hostPasswordInput" required autocomplete="off"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500" />
+          </div>
+          <p id="hostLoginError" class="text-xs text-rose-400 hidden">Password tidak valid.</p>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition">
+            Masuk Panel Host
+          </button>
+        </form>
+      </div>
+
+      <!-- PANEL UTAMA HOST -->
+      <div id="hostDashboard" class="hidden space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 glass-card p-4 rounded-2xl">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Panel Kendali Utama</span>
+            <h2 class="text-lg font-extrabold text-white">Manajemen Turnamen & Penjurian</h2>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="resetAllData()" class="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-semibold">
+              Reset Turnamen
+            </button>
+            <button onclick="logoutHost()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
+              Kunci Host
+            </button>
+          </div>
+        </div>
+
+        <!-- BARIS 1: CHECKLIST LAYAR UMUM & PENGATURAN JURI/KEAMANAN -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- CHECKLIST TAMPILAN LAYAR UMUM -->
+          <div class="glass-card rounded-2xl p-5 space-y-3">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-indigo-400">1. Checklist Tampilan Layar UMUM (Real-Time)</h3>
+            <p class="text-xs text-slate-400">Centang bagian yang ingin ditampilkan pada proyektor penonton:</p>
+            <div class="space-y-2.5 pt-1">
+              <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
+                <span class="text-sm font-medium">Pertandingan Sedang LIVE</span>
+                <input type="checkbox" id="chk-live" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
+              </label>
+              <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
+                <span class="text-sm font-medium">Klasemen Grup A & B (Tahap 1)</span>
+                <input type="checkbox" id="chk-standings" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
+              </label>
+              <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
+                <span class="text-sm font-medium">Bagan Upper & Lower Bracket (Tahap 2)</span>
+                <input type="checkbox" id="chk-bracket" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
+              </label>
+              <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
+                <span class="text-sm font-medium">Podium Juara 1 – 4</span>
+                <input type="checkbox" id="chk-podium" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
+              </label>
+              <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
+                <span class="text-sm font-medium">Riwayat Pertandingan Sudah Selesai</span>
+                <input type="checkbox" id="chk-history" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
+              </label>
+            </div>
+          </div>
+
+          <!-- PENGATURAN JUMLAH JURI & PASSWORD -->
+          <div class="glass-card rounded-2xl p-5 space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400">2. Konfigurasi Juri & Password Akses</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Judul Turnamen</label>
+                <input type="text" id="cfgEventTitle" onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Jumlah Juri Aktif (1–6)</label>
+                <select id="cfgJudgeCount" onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm">
+                  <option value="1">1 Juri</option>
+                  <option value="2">2 Juri</option>
+                  <option value="3">3 Juri</option>
+                  <option value="4">4 Juri</option>
+                  <option value="5">5 Juri</option>
+                  <option value="6">6 Juri</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Ubah Password Host</label>
+                <input type="password" id="cfgHostPass" placeholder="Isi untuk mengubah..." onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Password Global Semua Juri</label>
+                <input type="password" id="cfgGlobalJudgePass" placeholder="Isi password juri..." onchange="saveSecurityAndJudgeConfig()" class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-sm" />
+              </div>
+            </div>
+
+            <div id="individualJudgePassContainer" class="space-y-2 pt-1 border-t border-slate-800">
+              <!-- Opsional password per juri -->
+            </div>
+          </div>
+        </div>
+
+        <!-- BARIS 2: SETUP 6 TIM & UNDIAN GRUP -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">3. Daftar 6 Tim & Undian Grup (Tahap 1)</h3>
+            <div class="flex gap-2">
+              <button onclick="saveTeamNames()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Simpan Nama Tim</button>
+              <button onclick="randomizeGroups()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold">Acak Pembagian Grup A & B</button>
+            </div>
+          </div>
+          <div id="teamInputsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-indigo-500/20">
+              <span class="text-xs font-bold text-indigo-400 uppercase">Grup A:</span>
+              <span id="hostGroupAList" class="text-sm font-semibold text-white ml-2">-</span>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-900/80 border border-emerald-500/20">
+              <span class="text-xs font-bold text-emerald-400 uppercase">Grup B:</span>
+              <span id="hostGroupBList" class="text-sm font-semibold text-white ml-2">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BARIS 3: KONTROL PERTANDINGAN & MONITOR SKOR JURI -->
+        <div class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-rose-400">4. Kontrol Status Pertandingan & Rekap Nilai Juri</h3>
+              <p class="text-xs text-slate-400">Tentukan laga yang sedang <b>LIVE</b> agar muncul di terminal Juri dan Layar Umum.</p>
+            </div>
+            <button onclick="advanceToStage2()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/20">
+              Kunci Tahap 1 & Update Bagan Tahap 2
+            </button>
+          </div>
+
+          <div id="hostMatchesContainer" class="space-y-4"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================= -->
+    <!-- 3. TAMPILAN JURI (LOGIN + TERMINAL PENILAIAN LAGA LIVE)   -->
+    <!-- ========================================================= -->
+    <section id="view-judge" class="hidden space-y-6">
+      <!-- FORM LOGIN JURI (TANPA PETUNJUK PASSWORD) -->
+      <div id="judgeLoginBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl">
+        <h2 class="text-xl font-extrabold text-white mb-1">Terminal Penilaian Juri</h2>
+        <p class="text-xs text-slate-400 mb-6">Pilih nomor juri Anda dan masukkan password dari Host.</p>
+        <form onsubmit="handleJudgeLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Identitas Juri</label>
+            <select id="judgeSelectNumber" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white">
+              <!-- Diisi dinamis sesuai jumlah juri -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Juri</label>
+            <input type="password" id="judgePasswordInput" required autocomplete="off"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500" />
+          </div>
+          <p id="judgeLoginError" class="text-xs text-rose-400 hidden">Password juri salah.</p>
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white transition">
+            Masuk Terminal Juri
+          </button>
+        </form>
+      </div>
+
+      <!-- AREA INPUT NILAI JURI -->
+      <div id="judgeDashboard" class="hidden space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 glass-card p-4 rounded-2xl">
+          <div class="flex items-center gap-3">
+            <span id="activeJudgeBadge" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-extrabold text-sm">JURI 1</span>
+            <div>
+              <h2 class="text-base font-bold text-white">Panel Input Skor Pertandingan</h2>
+              <p class="text-xs text-slate-400">Hanya pertandingan berstatus <b>SEDANG BERTANDING (LIVE)</b> yang dapat dinilai.</p>
+            </div>
+          </div>
+          <button onclick="logoutJudge()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200">
+            Keluar Juri
+          </button>
+        </div>
+
+        <div id="judgeLiveMatchArea"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // =========================================================================
+    // 1. KONFIGURASI FIREBASE REALTIME DATABASE
+    // Ganti objek firebaseConfig di bawah ini dengan kredensial project Anda
+    // =========================================================================
+    const firebaseConfig = {
+      apiKey: "",
+      authDomain: "",
+      databaseURL: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+
+    let dbRef = null;
+    let isFirebaseReady = false;
+
+    if (firebaseConfig.databaseURL && firebaseConfig.apiKey) {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        dbRef = firebase.database().ref("turnamen_6_tim_state");
+        isFirebaseReady = true;
+        document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
+        document.getElementById("connStatusText").textContent = "Terhubung Cloud Firebase (Real-Time)";
+      } catch (e) {
+        console.error("Firebase init error:", e);
+      }
+    }
+
+    // =========================================================================
+    // 2. STATE & AUTHENTICATION
+    // =========================================================================
+    const STORAGE_KEY = "turnamen_6tim_v3_state";
+    const bc = new BroadcastChannel("turnamen_6tim_channel");
+
+    let sessionAuth = {
+      role: "public",
+      hostLoggedIn: false,
+      judgeNumber: null
+    };
+
+    function createDefaultState() {
+      const teams = ["Tim Alpha", "Tim Bravo", "Tim Charlie", "Tim Delta", "Tim Echo", "Tim Foxtrot"];
+      return {
+        eventTitle: "TURNAMEN TAKTIS 6 TIM",
+        hostPassword: "admin",
+        judgeCount: 2,
+        globalJudgePassword: "juri",
+        judgePasswords: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+        publicVisibility: {
+          live: true,
+          standings: true,
+          bracket: true,
+          podium: true,
+          history: true
+        },
+        teams: teams,
+        groups: {
+          A: [0, 1, 2],
+          B: [3, 4, 5]
+        },
+        matches: generateInitialMatches([0, 1, 2], [3, 4, 5])
+      };
+    }
+
+    function generateInitialMatches(grpA, grpB) {
+      const m = {};
+      // Tahap 1 Grup A (3 match)
+      const pairsA = [[grpA[0], grpA[1]], [grpA[0], grpA[2]], [grpA[1], grpA[2]]];
+      pairsA.forEach((p, idx) => {
+        const id = `A${idx + 1}`;
+        m[id] = makeMatchObj(id, "Tahap 1 - Grup A", `Grup A • Laga ${idx + 1}`, p[0], p[1], idx === 0 ? "live" : "pending");
+      });
+      // Tahap 1 Grup B (3 match)
+      const pairsB = [[grpB[0], grpB[1]], [grpB[0], grpB[2]], [grpB[1], grpB[2]]];
+      pairsB.forEach((p, idx) => {
+        const id = `B${idx + 1}`;
+        m[id] = makeMatchObj(id, "Tahap 1 - Grup B", `Grup B • Laga ${idx + 1}`, p[0], p[1], "pending");
+      });
+      // Tahap 2 Upper & Lower Bracket (6 match)
+      m["P1"] = makeMatchObj("P1", "Tahap 2 - Upper Semifinal 1", "Match 1 (1A vs 2B)", null, null, "pending");
+      m["P2"] = makeMatchObj("P2", "Tahap 2 - Upper Semifinal 2", "Match 2 (1B vs 2A)", null, null, "pending");
+      m["P3"] = makeMatchObj("P3", "Tahap 2 - Upper Bracket Final", "Match 3 (W1 vs W2)", null, null, "pending");
+      m["P4"] = makeMatchObj("P4", "Tahap 2 - Lower Semifinal", "Match 4 (L1 vs L2)", null, null, "pending");
+      m["P5"] = makeMatchObj("P5", "Tahap 2 - Lower Bracket Final", "Match 5 (L3 vs W4)", null, null, "pending");
+      m["P6"] = makeMatchObj("P6", "Tahap 2 - GRAND FINAL", "Match 6 (W3 vs W5)", null, null, "pending");
+      return m;
+    }
+
+    function makeMatchObj(id, stage, label, teamA, teamB, status) {
+      return {
+        id,
+        stage,
+        label,
+        teamA,
+        teamB,
+        status, // 'pending' | 'live' | 'completed'
+        judges: {} // { "1": { shootA, bonusA, penA, shootB, bonusB, penB, locked } }
+      };
+    }
+
+    let appState = loadLocalState();
+
+    function loadLocalState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return createDefaultState();
+    }
+
+    function persistState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      bc.postMessage(appState);
+      if (isFirebaseReady && dbRef) {
+        dbRef.set(appState);
+      }
+      renderAll();
+    }
+
+    // Listener lintas tab & Firebase Cloud
+    bc.onmessage = (ev) => {
+      if (ev.data) {
+        appState = ev.data;
+        renderAll();
+      }
+    };
+
+    if (isFirebaseReady && dbRef) {
+      dbRef.on("value", (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          appState = val;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+          renderAll();
+        } else {
+          dbRef.set(appState);
+        }
+      });
+    }
+
+    // =========================================================================
+    // 3. PERHITUNGAN SKOR RATA-RATA JURI & KLASEMEN
+    // =========================================================================
+    function getMatchAverageScores(match) {
+      const count = Number(appState.judgeCount) || 2;
+      let sumA = 0, sumB = 0, penA = 0, penB = 0;
+      const judgesObj = match.judges || {};
+
+      for (let j = 1; j <= count; j++) {
+        const jd = judgesObj[j] || { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0 };
+        const totA = (Number(jd.shootA) || 0) + (Number(jd.bonusA) || 0) - (Number(jd.penA) || 0);
+        const totB = (Number(jd.shootB) || 0) + (Number(jd.bonusB) || 0) - (Number(jd.penB) || 0);
+        sumA += totA;
+        sumB += totB;
+        penA += (Number(jd.penA) || 0);
+        penB += (Number(jd.penB) || 0);
+      }
+
+      const avgA = Number((sumA / count).toFixed(2));
+      const avgB = Number((sumB / count).toFixed(2));
+      return { avgA, avgB, avgPenA: penA / count, avgPenB: penB / count };
+    }
+
+    function getMatchWinnerLoser(match) {
+      if (match.teamA === null || match.teamB === null) return { winner: null, loser: null };
+      const { avgA, avgB, avgPenA, avgPenB } = getMatchAverageScores(match);
+      if (avgA > avgB) return { winner: match.teamA, loser: match.teamB };
+      if (avgB > avgA) return { winner: match.teamB, loser: match.teamA };
+      // Tie-breaker: penalti lebih sedikit menang
+      if (avgPenA <= avgPenB) return { winner: match.teamA, loser: match.teamB };
+      return { winner: match.teamB, loser: match.teamA };
+    }
+
+    function computeGroupStandings(groupKey) {
+      const teamIndices = appState.groups[groupKey] || [];
+      const stats = {};
+      teamIndices.forEach(idx => {
+        stats[idx] = { teamIdx: idx, played: 0, totalScore: 0, highScore: -999999, totalPenalty: 0 };
+      });
+
+      const matchIds = groupKey === "A" ? ["A1", "A2", "A3"] : ["B1", "B2", "B3"];
+      matchIds.forEach(mid => {
+        const m = appState.matches[mid];
+        if (!m || m.status === "pending") return;
+        const { avgA, avgB, avgPenA, avgPenB } = getMatchAverageScores(m);
+        if (stats[m.teamA]) {
+          stats[m.teamA].played += 1;
+          stats[m.teamA].totalScore = Number((stats[m.teamA].totalScore + avgA).toFixed(2));
+          stats[m.teamA].highScore = Math.max(stats[m.teamA].highScore, avgA);
+          stats[m.teamA].totalPenalty += avgPenA;
+        }
+        if (stats[m.teamB]) {
+          stats[m.teamB].played += 1;
+          stats[m.teamB].totalScore = Number((stats[m.teamB].totalScore + avgB).toFixed(2));
+          stats[m.teamB].highScore = Math.max(stats[m.teamB].highScore, avgB);
+          stats[m.teamB].totalPenalty += avgPenB;
+        }
+      });
+
+      return Object.values(stats).sort((a, b) => {
+        if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        if (b.highScore !== a.highScore) return b.highScore - a.highScore;
+        return a.totalPenalty - b.totalPenalty;
+      });
+    }
+
+    // =========================================================================
+    // 4. NAVIGASI ROLE & AUTENTIKASI LOGIN
+    // =========================================================================
+    function switchRole(role) {
+      sessionAuth.role = role;
+      ["public", "host", "judge"].forEach(r => {
+        document.getElementById(`view-${r}`).classList.toggle("hidden", r !== role);
+        const btn = document.getElementById(`nav-${r}`);
+        if (r === role) {
+          btn.className = "px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition bg-indigo-600 text-white";
+        } else {
+          btn.className = "px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-400 hover:text-white";
+        }
+      });
+      renderAll();
+    }
+
+    function handleHostLogin(e) {
+      e.preventDefault();
+      const input = document.getElementById("hostPasswordInput").value;
+      if (input === appState.hostPassword) {
+        sessionAuth.hostLoggedIn = true;
+        document.getElementById("hostPasswordInput").value = "";
+        document.getElementById("hostLoginError").classList.add("hidden");
+        renderAll();
+      } else {
+        document.getElementById("hostLoginError").classList.remove("hidden");
+      }
+    }
+
+    function logoutHost() {
+      sessionAuth.hostLoggedIn = false;
+      renderAll();
+    }
+
+    function handleJudgeLogin(e) {
+      e.preventDefault();
+      const jNum = Number(document.getElementById("judgeSelectNumber").value);
+      const input = document.getElementById("judgePasswordInput").value;
+      const customPass = (appState.judgePasswords && appState.judgePasswords[jNum]) ? appState.judgePasswords[jNum] : "";
+      const validPass = customPass || appState.globalJudgePassword;
+
+      if (input === validPass) {
+        sessionAuth.judgeNumber = jNum;
+        document.getElementById("judgePasswordInput").value = "";
+        document.getElementById("judgeLoginError").classList.add("hidden");
+        renderAll();
+      } else {
+        document.getElementById("judgeLoginError").classList.remove("hidden");
+      }
+    }
+
+    function logoutJudge() {
+      sessionAuth.judgeNumber = null;
+      renderAll();
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // =========================================================================
+    // 5. AKSI HOST (CHECKLIST, JURI, TIM, STATUS MATCH, BRACKET)
+    // =========================================================================
+    function updatePublicVisibility() {
+      appState.publicVisibility = {
+        live: document.getElementById("chk-live").checked,
+        standings: document.getElementById("chk-standings").checked,
+        bracket: document.getElementById("chk-bracket").checked,
+        podium: document.getElementById("chk-podium").checked,
+        history: document.getElementById("chk-history").checked
+      };
+      persistState();
+    }
+
+    function saveSecurityAndJudgeConfig() {
+      const title = document.getElementById("cfgEventTitle").value.trim();
+      if (title) appState.eventTitle = title;
+
+      appState.judgeCount = Number(document.getElementById("cfgJudgeCount").value) || 2;
+
+      const newHostPass = document.getElementById("cfgHostPass").value.trim();
+      if (newHostPass) {
+        appState.hostPassword = newHostPass;
+        document.getElementById("cfgHostPass").value = "";
+      }
+
+      const newGlobalJudgePass = document.getElementById("cfgGlobalJudgePass").value.trim();
+      if (newGlobalJudgePass) {
+        appState.globalJudgePassword = newGlobalJudgePass;
+        document.getElementById("cfgGlobalJudgePass").value = "";
+      }
+
+      persistState();
+    }
+
+    function saveIndividualJudgePass(jNum, val) {
+      if (!appState.judgePasswords) appState.judgePasswords = {};
+      appState.judgePasswords[jNum] = val.trim();
+      persistState();
+    }
+
+    function saveTeamNames() {
+      for (let i = 0; i < 6; i++) {
+        const el = document.getElementById(`team-name-${i}`);
+        if (el && el.value.trim()) {
+          appState.teams[i] = el.value.trim();
+        }
+      }
+      persistState();
+    }
+
+    function randomizeGroups() {
+      saveTeamNames();
+      const arr = [0, 1, 2, 3, 4, 5];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      appState.groups.A = [arr[0], arr[1], arr[2]];
+      appState.groups.B = [arr[3], arr[4], arr[5]];
+      appState.matches = generateInitialMatches(appState.groups.A, appState.groups.B);
+      persistState();
+    }
+
+    function setMatchStatus(matchId, newStatus) {
+      // Hanya 1 pertandingan yang boleh berstatus 'live' pada satu waktu
+      if (newStatus === "live") {
+        Object.keys(appState.matches).forEach(k => {
+          if (appState.matches[k].status === "live") {
+            appState.matches[k].status = "pending";
+          }
+        });
+      }
+      appState.matches[matchId].status = newStatus;
+      if (newStatus === "completed") {
+        propagateBracketProgression();
+      }
+      persistState();
+    }
+
+    function unlockJudgeForMatch(matchId, jNum) {
+      if (appState.matches[matchId]?.judges?.[jNum]) {
+        appState.matches[matchId].judges[jNum].locked = false;
+        persistState();
+      }
+    }
+
+    function advanceToStage2() {
+      const standA = computeGroupStandings("A");
+      const standB = computeGroupStandings("B");
+      if (standA.length >= 2 && standB.length >= 2) {
+        appState.matches["P1"].teamA = standA[0].teamIdx; // 1A
+        appState.matches["P1"].teamB = standB[1].teamIdx; // 2B
+        appState.matches["P2"].teamA = standB[0].teamIdx; // 1B
+        appState.matches["P2"].teamB = standA[1].teamIdx; // 2A
+        propagateBracketProgression();
+        persistState();
+      }
+    }
+
+    function propagateBracketProgression() {
+      const m = appState.matches;
+      if (m["P1"].status === "completed" && m["P2"].status === "completed") {
+        const res1 = getMatchWinnerLoser(m["P1"]);
+        const res2 = getMatchWinnerLoser(m["P2"]);
+        m["P3"].teamA = res1.winner;
+        m["P3"].teamB = res2.winner;
+        m["P4"].teamA = res1.loser;
+        m["P4"].teamB = res2.loser;
+      }
+      if (m["P3"].status === "completed" && m["P4"].status === "completed") {
+        const res3 = getMatchWinnerLoser(m["P3"]);
+        const res4 = getMatchWinnerLoser(m["P4"]);
+        m["P5"].teamA = res3.loser;
+        m["P5"].teamB = res4.winner;
+      }
+      if (m["P3"].status === "completed" && m["P5"].status === "completed") {
+        const res3 = getMatchWinnerLoser(m["P3"]);
+        const res5 = getMatchWinnerLoser(m["P5"]);
+        m["P6"].teamA = res3.winner;
+        m["P6"].teamB = res5.winner;
+      }
+    }
+
+    function resetAllData() {
+      if (confirm("Reset seluruh data turnamen ke awal?")) {
+        appState = createDefaultState();
+        persistState();
+      }
+    }
+
+    // =========================================================================
+    // 6. AKSI JURI (INPUT SKOR LAGA LIVE)
+    // =========================================================================
+    function updateJudgeScore(matchId, jNum, field, deltaOrVal, isDirect = false) {
+      const match = appState.matches[matchId];
+      if (!match) return;
+      if (!match.judges) match.judges = {};
+      if (!match.judges[jNum]) {
+        match.judges[jNum] = { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
+      }
+      if (match.judges[jNum].locked) return;
+
+      const cur = Number(match.judges[jNum][field]) || 0;
+      const nextVal = isDirect ? (Number(deltaOrVal) || 0) : Math.max(0, cur + deltaOrVal);
+      match.judges[jNum][field] = nextVal;
+      persistState();
+    }
+
+    function lockJudgeSubmission(matchId, jNum) {
+      const match = appState.matches[matchId];
+      if (!match) return;
+      if (!match.judges) match.judges = {};
+      if (!match.judges[jNum]) {
+        match.judges[jNum] = { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
+      }
+      match.judges[jNum].locked = true;
+      persistState();
+    }
+
+    // =========================================================================
+    // 7. RENDERING SEMUA TAMPILAN
+    // =========================================================================
+    function getTeamName(idx) {
+      if (idx === null || idx === undefined) return "Menunggu Hasil";
+      return appState.teams[idx] || `Tim ${idx + 1}`;
+    }
+
+    function renderAll() {
+      document.getElementById("headerEventTitle").textContent = appState.eventTitle || "TURNAMEN 6 TIM";
+      renderPublicView();
+      renderHostView();
+      renderJudgeView();
+    }
+
+    function renderPublicView() {
+      const vis = appState.publicVisibility || {};
+      document.getElementById("pub-section-live").classList.toggle("hidden", !vis.live);
+      document.getElementById("pub-section-standings").classList.toggle("hidden", !vis.standings);
+      document.getElementById("pub-section-bracket").classList.toggle("hidden", !vis.bracket);
+      document.getElementById("pub-section-podium").classList.toggle("hidden", !vis.podium);
+      document.getElementById("pub-section-history").classList.toggle("hidden", !vis.history);
+
+      // Live Match
+      const liveMatch = Object.values(appState.matches).find(m => m.status === "live");
+      const liveContainer = document.getElementById("pubLiveContent");
+      const liveStageEl = document.getElementById("pubLiveStageLabel");
+
+      if (liveMatch) {
+        liveStageEl.textContent = `${liveMatch.stage} • ${liveMatch.label}`;
+        const { avgA, avgB } = getMatchAverageScores(liveMatch);
+        liveContainer.innerHTML = `
+          <div class="text-center p-5 rounded-2xl bg-slate-900/90 border border-indigo-500/30">
+            <div class="text-xs font-bold uppercase text-indigo-400 mb-1">TIM A</div>
+            <div class="text-2xl md:text-3xl font-black text-white mb-3">${getTeamName(liveMatch.teamA)}</div>
+            <div class="text-4xl md:text-6xl font-black text-indigo-400">${avgA}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Nilai Akhir</div>
+          </div>
+          <div class="text-center">
+            <div class="text-2xl font-black text-slate-500">VS</div>
+            <div class="mt-2 inline-block px-3 py-1 rounded-full bg-slate-800 text-xs text-slate-300">
+              Rata-rata ${appState.judgeCount} Juri
+            </div>
+          </div>
+          <div class="text-center p-5 rounded-2xl bg-slate-900/90 border border-emerald-500/30">
+            <div class="text-xs font-bold uppercase text-emerald-400 mb-1">TIM B</div>
+            <div class="text-2xl md:text-3xl font-black text-white mb-3">${getTeamName(liveMatch.teamB)}</div>
+            <div class="text-4xl md:text-6xl font-black text-emerald-400">${avgB}</div>
+            <div class="text-[11px] text-slate-400 mt-1">Nilai Akhir</div>
+          </div>
+        `;
+      } else {
+        liveStageEl.textContent = "MENUNGGU PERTANDINGAN BERIKUTNYA";
+        liveContainer.innerHTML = `<div class="col-span-3 text-center py-8 text-slate-400 text-sm">Belum ada pertandingan berstatus LIVE saat ini.</div>`;
+      }
+
+      // Klasemen A & B
+      ["A", "B"].forEach(g => {
+        const rows = computeGroupStandings(g);
+        const tbody = document.getElementById(`pubStandings${g}`);
+        tbody.innerHTML = rows.map((r, i) => {
+          const lolos = i < 2;
+          return `
+            <tr class="${lolos ? 'bg-indigo-950/20' : ''}">
+              <td class="py-3 px-2 font-bold ${lolos ? 'text-emerald-400' : 'text-slate-500'}">#${i + 1}</td>
+              <td class="py-3 px-2 font-bold text-white">${getTeamName(r.teamIdx)}</td>
+              <td class="py-3 px-2 text-center text-slate-300">${r.played}/2</td>
+              <td class="py-3 px-2 text-right font-black text-base text-indigo-300">${r.totalScore}</td>
+              <td class="py-3 px-2 text-center">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold ${lolos ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">
+                  ${lolos ? 'Lolos Tahap 2' : 'Zona Gugur'}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      });
+
+      // Bracket Tahap 2
+      const playoffIds = ["P1", "P2", "P3", "P4", "P5", "P6"];
+      document.getElementById("pubBracketGrid").innerHTML = playoffIds.map(id => {
+        const m = appState.matches[id];
+        const { avgA, avgB } = getMatchAverageScores(m);
+        return `
+          <div class="p-4 rounded-xl bg-slate-900/90 border ${m.status === 'live' ? 'border-rose-500' : 'border-slate-800'}">
+            <div class="flex justify-between items-center text-[11px] text-slate-400 mb-2">
+              <span class="font-bold text-amber-400">${m.label}</span>
+              <span class="uppercase">${m.status}</span>
+            </div>
+            <div class="space-y-1.5 text-sm">
+              <div class="flex justify-between items-center p-2 rounded bg-slate-950">
+                <span class="font-semibold">${getTeamName(m.teamA)}</span>
+                <span class="font-black text-indigo-400">${m.teamA !== null ? avgA : '-'}</span>
+              </div>
+              <div class="flex justify-between items-center p-2 rounded bg-slate-950">
+                <span class="font-semibold">${getTeamName(m.teamB)}</span>
+                <span class="font-black text-emerald-400">${m.teamB !== null ? avgB : '-'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Podium Juara 1-4
+      const p4 = appState.matches["P4"];
+      const p5 = appState.matches["P5"];
+      const p6 = appState.matches["P6"];
+      const j1 = p6.status === "completed" ? getTeamName(getMatchWinnerLoser(p6).winner) : "Menunggu Grand Final";
+      const j2 = p6.status === "completed" ? getTeamName(getMatchWinnerLoser(p6).loser) : "Menunggu Grand Final";
+      const j3 = p5.status === "completed" ? getTeamName(getMatchWinnerLoser(p5).loser) : "Menunggu Lower Final";
+      const j4 = p4.status === "completed" ? getTeamName(getMatchWinnerLoser(p4).loser) : "Menunggu Lower Semi";
+
+      const podiumData = [
+        { rank: "JUARA 1", name: j1, color: "border-yellow-400 text-yellow-400" },
+        { rank: "JUARA 2", name: j2, color: "border-slate-300 text-slate-300" },
+        { rank: "JUARA 3", name: j3, color: "border-amber-600 text-amber-500" },
+        { rank: "JUARA 4", name: j4, color: "border-slate-700 text-slate-400" }
+      ];
+      document.getElementById("pubPodiumGrid").innerHTML = podiumData.map(p => `
+        <div class="p-4 rounded-xl bg-slate-900/90 border ${p.color}">
+          <div class="text-xs font-extrabold tracking-wider">${p.rank}</div>
+          <div class="text-lg font-black text-white mt-1">${p.name}</div>
+        </div>
+      `).join("");
+
+      // Riwayat Pertandingan Selesai
+      const completed = Object.values(appState.matches).filter(m => m.status === "completed");
+      document.getElementById("pubCompletedList").innerHTML = completed.length
+        ? completed.map(m => {
+            const { avgA, avgB } = getMatchAverageScores(m);
+            return `
+              <div class="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
+                <div class="text-slate-400 font-semibold mb-1.5">${m.label}</div>
+                <div class="flex justify-between font-bold text-sm">
+                  <span>${getTeamName(m.teamA)}</span>
+                  <span class="text-indigo-400">${avgA}</span>
+                </div>
+                <div class="flex justify-between font-bold text-sm mt-1">
+                  <span>${getTeamName(m.teamB)}</span>
+                  <span class="text-emerald-400">${avgB}</span>
+                </div>
+              </div>
+            `;
+          }).join("")
+        : `<p class="text-xs text-slate-500">Belum ada pertandingan yang selesai.</p>`;
+    }
+
+    function renderHostView() {
+      const loggedIn = sessionAuth.hostLoggedIn;
+      document.getElementById("hostLoginBox").classList.toggle("hidden", loggedIn);
+      document.getElementById("hostDashboard").classList.toggle("hidden", !loggedIn);
+      if (!loggedIn) return;
+
+      // Sync checklist
+      const vis = appState.publicVisibility || {};
+      document.getElementById("chk-live").checked = !!vis.live;
+      document.getElementById("chk-standings").checked = !!vis.standings;
+      document.getElementById("chk-bracket").checked = !!vis.bracket;
+      document.getElementById("chk-podium").checked = !!vis.podium;
+      document.getElementById("chk-history").checked = !!vis.history;
+
+      // Sync config inputs
+      document.getElementById("cfgEventTitle").value = appState.eventTitle || "";
+      document.getElementById("cfgJudgeCount").value = appState.judgeCount || 2;
+
+      // Password spesifik per juri
+      const count = Number(appState.judgeCount) || 2;
+      let indHtml = `<div class="text-xs text-slate-400 mb-1">Password Khusus Per Juri (Kosongkan jika pakai password global):</div><div class="grid grid-cols-2 sm:grid-cols-3 gap-2">`;
+      for (let j = 1; j <= count; j++) {
+        const curP = (appState.judgePasswords && appState.judgePasswords[j]) || "";
+        indHtml += `
+          <div>
+            <label class="text-[11px] text-slate-400">Juri ${j}</label>
+            <input type="password" value="${curP}" placeholder="Global" onchange="saveIndividualJudgePass(${j}, this.value)"
+              class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs" />
+          </div>
+        `;
+      }
+      indHtml += `</div>`;
+      document.getElementById("individualJudgePassContainer").innerHTML = indHtml;
+
+      // Team Inputs
+      document.getElementById("teamInputsGrid").innerHTML = appState.teams.map((t, idx) => `
+        <div>
+          <label class="text-[11px] text-slate-400">Tim ${idx + 1}</label>
+          <input type="text" id="team-name-${idx}" value="${t}" class="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-sm text-white" />
+        </div>
+      `).join("");
+
+      document.getElementById("hostGroupAList").textContent = appState.groups.A.map(i => getTeamName(i)).join(" • ");
+      document.getElementById("hostGroupBList").textContent = appState.groups.B.map(i => getTeamName(i)).join(" • ");
+
+      // Matches List & Judge Monitoring
+      const order = ["A1", "A2", "A3", "B1", "B2", "B3", "P1", "P2", "P3", "P4", "P5", "P6"];
+      document.getElementById("hostMatchesContainer").innerHTML = order.map(id => {
+        const m = appState.matches[id];
+        const { avgA, avgB } = getMatchAverageScores(m);
+
+        let judgeDetailHtml = "";
+        for (let j = 1; j <= count; j++) {
+          const jd = (m.judges && m.judges[j]) || { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
+          const totA = (Number(jd.shootA) || 0) + (Number(jd.bonusA) || 0) - (Number(jd.penA) || 0);
+          const totB = (Number(jd.shootB) || 0) + (Number(jd.bonusB) || 0) - (Number(jd.penB) || 0);
+          judgeDetailHtml += `
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+              <span class="font-bold text-slate-300">Juri ${j}:</span>
+              <span>Tim A: <b>${totA}</b> (${jd.shootA}+${jd.bonusA}-${jd.penA})</span>
+              <span>Tim B: <b>${totB}</b> (${jd.shootB}+${jd.bonusB}-${jd.penB})</span>
+              ${jd.locked
+                ? `<button onclick="unlockJudgeForMatch('${id}', ${j})" class="text-amber-400 underline">Buka Kunci</button>`
+                : `<span class="text-slate-500">Terbuka</span>`}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="p-4 rounded-xl bg-slate-900/90 border ${m.status === 'live' ? 'border-rose-500' : 'border-slate-800'} space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span class="text-xs font-bold text-indigo-400">${m.label}</span>
+                <div class="text-base font-extrabold text-white">
+                  ${getTeamName(m.teamA)} <span class="text-indigo-400">(${avgA})</span>
+                  <span class="text-slate-500 mx-2">vs</span>
+                  ${getTeamName(m.teamB)} <span class="text-emerald-400">(${avgB})</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="setMatchStatus('${id}', 'pending')" class="px-2.5 py-1 rounded text-xs font-semibold ${m.status === 'pending' ? 'bg-slate-700 text-white' : 'bg-slate-950 text-slate-400'}">Belum</button>
+                <button onclick="setMatchStatus('${id}', 'live')" class="px-2.5 py-1 rounded text-xs font-bold ${m.status === 'live' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-400'}">LIVE</button>
+                <button onclick="setMatchStatus('${id}', 'completed')" class="px-2.5 py-1 rounded text-xs font-semibold ${m.status === 'completed' ? 'bg-emerald-600 text-white' : 'bg-slate-950 text-slate-400'}">Selesai</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+              ${judgeDetailHtml}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderJudgeView() {
+      // Populate dropdown jumlah juri di form login
+      const count = Number(appState.judgeCount) || 2;
+      const sel = document.getElementById("judgeSelectNumber");
+      const prevVal = sel.value;
+      sel.innerHTML = "";
+      for (let j = 1; j <= count; j++) {
+        const opt = document.createElement("option");
+        opt.value = j;
+        opt.textContent = `Juri ${j}`;
+        sel.appendChild(opt);
+      }
+      if (prevVal && Number(prevVal) <= count) sel.value = prevVal;
+
+      const jNum = sessionAuth.judgeNumber;
+      const loggedIn = jNum !== null && jNum <= count;
+      document.getElementById("judgeLoginBox").classList.toggle("hidden", loggedIn);
+      document.getElementById("judgeDashboard").classList.toggle("hidden", !loggedIn);
+      if (!loggedIn) return;
+
+      document.getElementById("activeJudgeBadge").textContent = `JURI ${jNum}`;
+      const liveMatch = Object.values(appState.matches).find(m => m.status === "live");
+      const area = document.getElementById("judgeLiveMatchArea");
+
+      if (!liveMatch) {
+        area.innerHTML = `
+          <div class="glass-card rounded-2xl p-10 text-center">
+            <h3 class="text-lg font-bold text-slate-300">Menunggu Host Mengaktifkan Pertandingan LIVE</h3>
+            <p class="text-xs text-slate-400 mt-1">Form penilaian akan muncul otomatis saat Host memulai pertandingan.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const jd = (liveMatch.judges && liveMatch.judges[jNum]) || { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
+      const totA = (Number(jd.shootA) || 0) + (Number(jd.bonusA) || 0) - (Number(jd.penA) || 0);
+      const totB = (Number(jd.shootB) || 0) + (Number(jd.bonusB) || 0) - (Number(jd.penB) || 0);
+
+      const renderTeamCard = (side, teamIdx, shoot, bonus, pen, total, accent) => `
+        <div class="glass-card rounded-2xl p-5 border-${accent}-500/30 space-y-4">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <div>
+              <span class="text-xs font-bold uppercase text-${accent}-400">TIM ${side}</span>
+              <h4 class="text-xl font-black text-white">${getTeamName(teamIdx)}</h4>
+            </div>
+            <div class="text-right">
+              <div class="text-[11px] text-slate-400">Total Skor Juri ${jNum}</div>
+              <div class="text-3xl font-black text-${accent}-400">${total}</div>
+            </div>
+          </div>
+
+          ${[
+            { key: `shoot${side}`, label: "Skor Tembak (+)", val: shoot },
+            { key: `bonus${side}`, label: "Skor Bonus (+)", val: bonus },
+            { key: `pen${side}`, label: "Skor Penalti (-)", val: pen }
+          ].map(item => `
+            <div class="flex items-center justify-between gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <span class="text-sm font-semibold text-slate-300">${item.label}</span>
+              <div class="flex items-center gap-2">
+                <button ${jd.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${item.key}', -5)"
+                  class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-white disabled:opacity-40">-5</button>
+                <input ${jd.locked ? 'disabled' : ''} type="number" value="${item.val}"
+                  onchange="updateJudgeScore('${liveMatch.id}', ${jNum}, '${item.key}', this.value, true)"
+                  class="w-20 text-center py-1.5 rounded-lg bg-slate-900 border border-slate-700 font-bold text-white disabled:opacity-50" />
+                <button ${jd.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${item.key}', 5)"
+                  class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-white disabled:opacity-40">+5</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      `;
+
+      area.innerHTML = `
+        <div class="space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-rose-950/30 border border-rose-500/40 px-4 py-3 rounded-xl">
+            <span class="text-xs font-extrabold text-rose-400 uppercase tracking-wider">LIVE: ${liveMatch.stage} — ${liveMatch.label}</span>
+            <span class="text-xs text-slate-300">Rumus: Tembak + Bonus - Penalti</span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            ${renderTeamCard("A", liveMatch.teamA, jd.shootA, jd.bonusA, jd.penA, totA, "indigo")}
+            ${renderTeamCard("B", liveMatch.teamB, jd.shootB, jd.bonusB, jd.penB, totB, "emerald")}
+          </div>
+
+          <div class="flex justify-end">
+            ${jd.locked
+              ? `<div class="px-5 py-3 rounded-xl bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-sm font-bold">Nilai Juri ${jNum} Sudah Dikirim & Dikunci</div>`
+              : `<button onclick="lockJudgeSubmission('${liveMatch.id}', ${jNum})" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/30">
+                  Kirim & Kunci Nilai Juri ${jNum}
+                </button>`}
+          </div>
+        </div>
+      `;
+    }
+
+    // Inisialisasi awal
+    renderAll();
+  </script>
+</body>
+</html>
