@@ -28,7 +28,7 @@
           <h1 id="headerEventTitle" class="font-extrabold text-base md:text-lg tracking-tight text-white">TURNAMEN 6 TIM</h1>
           <div class="flex items-center gap-2 text-xs text-slate-400">
             <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
-            <span id="connStatusText">Mode Lokal (Isi Firebase Config untuk Cloud)</span>
+            <span id="connStatusText">Menghubungkan ke Firebase...</span>
           </div>
         </div>
       </div>
@@ -329,16 +329,16 @@
   <script>
     // =========================================================================
     // 1. KONFIGURASI FIREBASE REALTIME DATABASE
-    // Ganti objek firebaseConfig di bawah ini dengan kredensial project Anda
     // =========================================================================
     const firebaseConfig = {
-      apiKey: "",
-      authDomain: "",
-      databaseURL: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
+      apiKey: "AIzaSyBJiSmhWsMGlu5AqEZeBqQcELDd_wUqt5U",
+      authDomain: "nacrv62026.firebaseapp.com",
+      databaseURL: "https://nacrv62026-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "nacrv62026",
+      storageBucket: "nacrv62026.firebasestorage.app",
+      messagingSenderId: "563521642169",
+      appId: "1:563521642169:web:7c1f4f64180320f59c8568",
+      measurementId: "G-M3BZQ7XJE9"
     };
 
     let dbRef = null;
@@ -350,9 +350,11 @@
         dbRef = firebase.database().ref("turnamen_6_tim_state");
         isFirebaseReady = true;
         document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
-        document.getElementById("connStatusText").textContent = "Terhubung Cloud Firebase (Real-Time)";
+        document.getElementById("connStatusText").textContent = "Terhubung Cloud Firebase (nacrv62026)";
       } catch (e) {
         console.error("Firebase init error:", e);
+        document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
+        document.getElementById("connStatusText").textContent = "Gagal Koneksi Firebase (Fallback Lokal)";
       }
     }
 
