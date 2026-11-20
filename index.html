@@ -218,7 +218,7 @@
                 Tes Gong
               </button>
               <button onclick="testCountdown10sSound()" class="px-3 py-2.5 rounded-xl bg-rose-950 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-rose-700/50">
-                Tes 10 Detik
+                Tes 15 Detik
               </button>
             </div>
           </div>
@@ -447,7 +447,7 @@
     }
 
     // =========================================================================
-    // 2. PEMUTAR AUDIO ASLI DARI LAMPIRAN (GONG & 10 DETIK TERAKHIR)
+    // 2. PEMUTAR AUDIO ASLI DARI LAMPIRAN (GONG & 15 DETIK TERAKHIR)
     // =========================================================================
     function base64ToBlobUrl(b64, mimeType) {
       const byteChars = atob(b64);
@@ -536,7 +536,7 @@
         countdown10sAudioPlayer.muted = false;
         countdown10sAudioPlayer.volume = 1.0;
         // Sinkronisasi offset waktu pemutaran agar tepat selaras dengan sisa 10 detik terakhir
-        const targetOffset = Math.max(0, Math.min(9.8, 10 - secLeft));
+        const targetOffset = Math.max(0, Math.min(14.8, 15 - secLeft));
         if (countdown10sAudioPlayer.paused) {
           countdown10sAudioPlayer.currentTime = targetOffset;
           countdown10sAudioPlayer.play().catch(err => console.warn("Audio 10s play blocked:", err));
