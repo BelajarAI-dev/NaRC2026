@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistem Manajemen Turnamen — Room PIN Otomatis & Firebase</title>
+  <title>Sistem Manajemen Turnamen — Sesi Host Persisten & Firebase</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase App & Realtime Database SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -225,36 +225,43 @@
     </section>
 
     <!-- ========================================================= -->
-    <!-- 2. TAMPILAN HOST (PIN OTOMATIS + KONTROL PENUH)           -->
+    <!-- 2. TAMPILAN HOST (BUAT BARU / LANJUTKAN PIN + KONTROL)    -->
     <!-- ========================================================= -->
     <section id="view-host" class="hidden space-y-6">
       <div id="hostLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl space-y-5">
         <div>
           <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
-          <p class="text-xs text-slate-400">Sistem akan membuat <b>PIN 6 Digit Otomatis</b> setelah Anda masuk.</p>
+          <p class="text-xs text-slate-400">Buat sesi PIN baru otomatis atau masukkan PIN yang sudah berjalan untuk melanjutkan di perangkat ini.</p>
+        </div>
+
+        <!-- PEMILIH MODE SESI HOST -->
+        <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800">
+          <button type="button" id="modeNewBtn" onclick="setHostAuthMode('new')"
+            class="py-2 rounded-lg text-xs font-extrabold transition bg-indigo-600 text-white">
+            Buat Sesi Baru
+          </button>
+          <button type="button" id="modeResumeBtn" onclick="setHostAuthMode('resume')"
+            class="py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
+            Lanjutkan PIN Aktif
+          </button>
         </div>
 
         <form onsubmit="handleHostLogin(event)" class="space-y-4">
+          <div id="resumePinContainer" class="hidden">
+            <label class="block text-xs font-semibold text-amber-300 uppercase mb-1.5">Masukkan PIN Turnamen (6 Digit)</label>
+            <input type="text" id="hostResumePinInput" inputmode="numeric" maxlength="6" autocomplete="off"
+              placeholder="PIN 6 DIGIT"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border-2 border-amber-500/40 text-center font-mono-timer text-2xl font-black tracking-[0.25em] text-amber-400 focus:outline-none focus:border-amber-400" />
+          </div>
+
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Host</label>
             <input type="password" id="hostPasswordInput" required autocomplete="off"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500" />
           </div>
 
-          <div id="resumePinContainer" class="hidden pt-1">
-            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">PIN Sesi Sebelumnya (6 Digit)</label>
-            <input type="text" id="hostResumePinInput" inputmode="numeric" maxlength="6" autocomplete="off"
-              class="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-700 font-mono-timer text-lg font-bold tracking-widest text-amber-400 focus:outline-none focus:border-indigo-500" />
-          </div>
-
-          <div class="flex justify-end">
-            <button type="button" onclick="toggleResumePinInput()" id="toggleResumePinBtn" class="text-[11px] text-slate-400 hover:text-indigo-400 underline">
-              Lanjutkan sesi PIN lama?
-            </button>
-          </div>
-
           <p id="hostLoginError" class="text-xs text-rose-400 hidden"></p>
-          <button type="submit" id="hostLoginBtn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition">
+          <button type="submit" id="hostLoginBtn" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-sm text-white transition shadow-lg shadow-indigo-600/25">
             Masuk & Buat PIN Otomatis
           </button>
         </form>
@@ -264,21 +271,26 @@
       <div id="hostDashboard" class="hidden space-y-6">
         <div class="glass-card rounded-2xl p-5 border-amber-500/40 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-amber-950/30 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ROOM PIN TURNAMEN AKTIF (OTOMATIS)</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                PIN HOST TERKUNCI & PERSISTEN
+              </span>
               <span id="hostCloudSyncBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                 Menyimpan ke Cloud...
               </span>
             </div>
-            <div class="flex flex-wrap items-center gap-3 mt-1">
+            <div class="flex flex-wrap items-center gap-3 mt-1.5">
               <span id="hostActivePinDisplay" class="font-mono-timer text-4xl md:text-5xl font-black tracking-[0.2em] text-white">------</span>
               <button onclick="copyActivePin()" id="copyPinBtn" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition">
                 Salin PIN
               </button>
               <button onclick="generateNewHostPinSession()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition">
-                Acak PIN Baru
+                Buat PIN Baru (Reset Sesi)
               </button>
             </div>
+            <p class="text-[11px] text-slate-400 mt-1.5">
+              Aman di-refresh (F5). Gunakan PIN & Password Host yang sama untuk melanjutkan kontrol dari perangkat lain.
+            </p>
           </div>
 
           <div class="flex flex-wrap gap-2">
@@ -472,13 +484,25 @@
           </div>
         </div>
 
-        <!-- SETUP 6 TIM & UNDIAN GRUP -->
+        <!-- SETUP 6 TIM & UNDIAN GRUP DENGAN PENGUNCI GRUP -->
         <div class="glass-card rounded-2xl p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">3. Daftar 6 Tim & Undian Grup (Tahap 1)</h3>
-            <div class="flex gap-2">
-              <button onclick="saveTeamNames()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold">Simpan Nama Tim</button>
-              <button onclick="randomizeGroups()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold">Acak Pembagian Grup A & B</button>
+            <div class="flex items-center gap-2.5">
+              <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">3. Daftar 6 Tim & Undian Grup (Tahap 1)</h3>
+              <span id="groupLockStatusBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                Terbuka
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="saveTeamNames()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold">
+                Simpan Nama Tim
+              </button>
+              <button id="randomizeGroupsBtn" onclick="randomizeGroups()" class="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-xs font-bold transition">
+                Acak Pembagian Grup A & B
+              </button>
+              <button id="toggleGroupLockBtn" onclick="toggleGroupLock()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
+                Kunci Pembagian Grup
+              </button>
             </div>
           </div>
           <div id="teamInputsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></div>
@@ -612,9 +636,6 @@
           if (isCloudConnected) {
             dot.className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
             txt.textContent = "Terhubung Cloud Firebase (Online)";
-            if (sessionAuth.hostLoggedIn && sessionAuth.activePin) {
-              persistState();
-            }
           } else {
             dot.className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block";
             txt.textContent = "Menghubungkan ke Server Firebase...";
@@ -1081,10 +1102,12 @@
     }
 
     // =========================================================================
-    // 4. STATE PER ROOM PIN, SINKRONISASI CLOUD & FALLBACK ANTI-GAGAL
+    // 4. STATE PER ROOM PIN, PERSISTENSI ANTI-REFRESH & CLOUD SYNC
     // =========================================================================
     const DEFAULT_MATCH_DURATION_SEC = 300;
     const ROOM_STORAGE_PREFIX = "turnamen_room_pin_";
+    const SESSION_STORAGE_KEY = "turnamen_active_session_v2";
+    const LAST_HOST_PIN_KEY = "turnamen_last_host_pin";
     const bc = new BroadcastChannel("turnamen_6tim_pin_channel");
 
     let sessionAuth = {
@@ -1093,8 +1116,39 @@
       publicJoined: false,
       hostLoggedIn: false,
       judgeNumber: null,
-      showResumePin: false
+      hostAuthMode: "new"
     };
+
+    function saveBrowserSession() {
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+          role: sessionAuth.role,
+          activePin: sessionAuth.activePin,
+          publicJoined: sessionAuth.publicJoined,
+          hostLoggedIn: sessionAuth.hostLoggedIn,
+          judgeNumber: sessionAuth.judgeNumber
+        }));
+        if (sessionAuth.hostLoggedIn && sessionAuth.activePin) {
+          localStorage.setItem(LAST_HOST_PIN_KEY, sessionAuth.activePin);
+        }
+      } catch (e) {}
+    }
+
+    function loadBrowserSession() {
+      try {
+        const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.activePin) {
+            sessionAuth.role = parsed.role || "public";
+            sessionAuth.activePin = parsed.activePin;
+            sessionAuth.publicJoined = !!parsed.publicJoined;
+            sessionAuth.hostLoggedIn = !!parsed.hostLoggedIn;
+            sessionAuth.judgeNumber = parsed.judgeNumber !== undefined ? parsed.judgeNumber : null;
+          }
+        }
+      } catch (e) {}
+    }
 
     function getConfiguredDurationSec() {
       const dur = Number(appState?.timer?.durationSec);
@@ -1110,6 +1164,7 @@
         judgeCount: 2,
         globalJudgePassword: "juri",
         judgePasswords: { 1: "", 2: "", 3: "", 4: "", 5: "", 6: "" },
+        groupsLocked: false,
         publicVisibility: {
           live: true,
           standings: true,
@@ -1210,12 +1265,12 @@
             localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(val));
             return { data: val, error: null };
           }
-          return { data: null, error: null };
+          return { data: loadLocalRoomState(pin), error: null };
         } catch (err) {
           console.error("Fetch PIN error:", err);
           const msg = (err && err.code === "PERMISSION_DENIED")
             ? "Akses baca Firebase ditolak (PERMISSION_DENIED). Pastikan Rules Realtime Database mengizinkan .read: true."
-            : "Koneksi ke server Firebase lambat/terputus. Periksa jaringan internet perangkat ini.";
+            : "Koneksi ke server Firebase lambat/terputus. Menggunakan cadangan data lokal jika tersedia.";
           showFirebaseAlert(msg);
           const localFallback = loadLocalRoomState(pin);
           return { data: localFallback, error: msg };
@@ -1230,6 +1285,8 @@
         currentRoomRef = null;
       }
       sessionAuth.activePin = pin;
+      saveBrowserSession();
+
       if (isFirebaseInitialized && rootRoomsRef && pin) {
         currentRoomRef = rootRoomsRef.child(pin);
         currentRoomRef.on("value", (snapshot) => {
@@ -1239,6 +1296,7 @@
             val.timer = normalizeTimerState(val.timer);
             appState = val;
             localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(appState));
+            updateHostSyncBadge("ok", "Tersinkron ke Cloud (Aktif Lintas Perangkat)");
             renderAll();
           }
         }, (err) => {
@@ -1260,7 +1318,7 @@
       if (!badge) return;
       if (status === "ok") {
         badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
-        badge.textContent = text || "Tersinkron ke Cloud (Siap Diakses Perangkat Lain)";
+        badge.textContent = text || "Tersinkron ke Cloud (Aktif Lintas Perangkat)";
       } else if (status === "err") {
         badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40";
         badge.textContent = text || "Gagal Simpan ke Cloud (Hanya Lokal)";
@@ -1275,6 +1333,7 @@
       if (!pin) return Promise.resolve(false);
       appState.roomPin = pin;
       localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(appState));
+      saveBrowserSession();
       bc.postMessage({ pin, state: appState });
       renderAll();
 
@@ -1283,7 +1342,7 @@
         return rootRoomsRef.child(pin).set(appState)
           .then(() => {
             hideFirebaseAlert();
-            updateHostSyncBadge("ok", "Tersinkron ke Cloud (Siap Diakses Perangkat Lain)");
+            updateHostSyncBadge("ok", "Tersinkron ke Cloud (Aktif Lintas Perangkat)");
             return true;
           })
           .catch((err) => {
@@ -1609,10 +1668,12 @@
     }
 
     // =========================================================================
-    // 7. NAVIGASI ROLE & AUTENTIKASI BERBASIS ROOM PIN OTOMATIS
+    // 7. NAVIGASI ROLE & AUTENTIKASI PERSISTEN (TAHAN REFRESH + MULTI DEVICE)
     // =========================================================================
     function switchRole(role) {
       sessionAuth.role = role;
+      saveBrowserSession();
+
       ["public", "host", "judge"].forEach(r => {
         document.getElementById(`view-${r}`).classList.toggle("hidden", r !== role);
         const btn = document.getElementById(`nav-${r}`);
@@ -1633,21 +1694,28 @@
       renderAll();
     }
 
-    function toggleResumePinInput() {
-      sessionAuth.showResumePin = !sessionAuth.showResumePin;
-      const box = document.getElementById("resumePinContainer");
-      const btn = document.getElementById("toggleResumePinBtn");
+    function setHostAuthMode(mode) {
+      sessionAuth.hostAuthMode = mode;
+      const newBtn = document.getElementById("modeNewBtn");
+      const resBtn = document.getElementById("modeResumeBtn");
+      const pinBox = document.getElementById("resumePinContainer");
       const submitBtn = document.getElementById("hostLoginBtn");
-      const inputEl = document.getElementById("hostResumePinInput");
+      const pinInput = document.getElementById("hostResumePinInput");
 
-      box.classList.toggle("hidden", !sessionAuth.showResumePin);
-      if (sessionAuth.showResumePin) {
-        btn.textContent = "Batal, buat PIN baru otomatis";
-        submitBtn.textContent = "Buka Sesi PIN Lama";
+      if (mode === "resume") {
+        newBtn.className = "py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white";
+        resBtn.className = "py-2 rounded-lg text-xs font-extrabold transition bg-amber-500 text-slate-950";
+        pinBox.classList.remove("hidden");
+        submitBtn.textContent = "Masuk & Lanjutkan Sesi PIN";
+        if (pinInput && !pinInput.value) {
+          const lastPin = sessionAuth.activePin || localStorage.getItem(LAST_HOST_PIN_KEY) || "";
+          if (lastPin) pinInput.value = lastPin;
+        }
       } else {
-        btn.textContent = "Lanjutkan sesi PIN lama?";
+        newBtn.className = "py-2 rounded-lg text-xs font-extrabold transition bg-indigo-600 text-white";
+        resBtn.className = "py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white";
+        pinBox.classList.add("hidden");
         submitBtn.textContent = "Masuk & Buat PIN Otomatis";
-        if (inputEl) inputEl.value = "";
       }
     }
 
@@ -1674,7 +1742,7 @@
       if (!res.data) {
         errEl.textContent = res.error
           ? res.error
-          : `PIN ${pin} belum ditemukan di server Cloud. Pastikan Host sudah masuk dan tidak ada peringatan merah di perangkat Host.`;
+          : `PIN ${pin} belum ditemukan di server Cloud. Pastikan Host sudah masuk terlebih dahulu.`;
         errEl.classList.remove("hidden");
         return;
       }
@@ -1692,14 +1760,16 @@
         detachRoomSubscription();
         sessionAuth.activePin = null;
       }
+      saveBrowserSession();
       renderAll();
     }
 
-    // --- B. LOGIN & BUAT PIN OTOMATIS HOST ---
+    // --- B. LOGIN HOST (BUAT BARU / LANJUTKAN PIN DI PERANGKAT LAIN) ---
     async function handleHostLogin(e) {
       e.preventDefault();
       const passInput = document.getElementById("hostPasswordInput").value;
-      const resumePin = sessionAuth.showResumePin
+      const isResume = sessionAuth.hostAuthMode === "resume";
+      const resumePin = isResume
         ? normalizePinString(document.getElementById("hostResumePinInput").value)
         : "";
       const errEl = document.getElementById("hostLoginError");
@@ -1711,16 +1781,22 @@
         return;
       }
 
+      if (isResume && resumePin.length < 4) {
+        errEl.textContent = "Masukkan PIN Turnamen 6 digit yang ingin dilanjutkan.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
       btnEl.disabled = true;
       btnEl.textContent = "Menghubungkan Sesi Cloud...";
 
-      if (resumePin) {
+      if (isResume) {
         const res = await fetchRoomStateByPin(resumePin);
         btnEl.disabled = false;
-        btnEl.textContent = "Buka Sesi PIN Lama";
+        btnEl.textContent = "Masuk & Lanjutkan Sesi PIN";
 
         if (!res.data) {
-          errEl.textContent = `Sesi dengan PIN ${resumePin} tidak ditemukan.`;
+          errEl.textContent = `Sesi dengan PIN ${resumePin} tidak ditemukan di server Cloud maupun lokal.`;
           errEl.classList.remove("hidden");
           return;
         }
@@ -1738,7 +1814,6 @@
         subscribeToRoomPin(resumePin);
         await persistState();
       } else {
-        // Validasi password dengan sesi default ("admin" atau password terakhir yang tersimpan di lokal)
         const expectedPass = appState?.hostPassword || "admin";
         if (passInput !== expectedPass) {
           btnEl.disabled = false;
@@ -1748,7 +1823,6 @@
           return;
         }
 
-        // Buat PIN 6 digit baru secara otomatis
         let newPin = generateRandomPin();
         if (isFirebaseInitialized && rootRoomsRef) {
           for (let attempt = 0; attempt < 4; attempt++) {
@@ -1773,7 +1847,7 @@
     }
 
     function generateNewHostPinSession() {
-      if (!confirm("Acak dan buat PIN Turnamen 6 digit baru?")) return;
+      if (!confirm("Buat PIN Turnamen 6 digit baru? Sesi saat ini akan diganti dengan data awal baru.")) return;
       stopExternalTenseAudio();
       stopExternalTickAudio();
       stopBgmTenseLoop();
@@ -1799,6 +1873,7 @@
 
     function logoutHost() {
       sessionAuth.hostLoggedIn = false;
+      saveBrowserSession();
       renderAll();
     }
 
@@ -1868,6 +1943,7 @@
 
     function logoutJudge() {
       sessionAuth.judgeNumber = null;
+      saveBrowserSession();
       renderAll();
     }
 
@@ -1880,7 +1956,7 @@
     }
 
     // =========================================================================
-    // 8. AKSI HOST
+    // 8. AKSI HOST (TERMASUK KUNCI PEMBAGIAN GRUP)
     // =========================================================================
     function updatePublicVisibility() {
       appState.publicVisibility = {
@@ -1930,7 +2006,16 @@
       persistState();
     }
 
+    function toggleGroupLock() {
+      appState.groupsLocked = !appState.groupsLocked;
+      persistState();
+    }
+
     function randomizeGroups() {
+      if (appState.groupsLocked) {
+        alert("Pembagian grup saat ini sedang DIKUNCI agar tidak teracak saat pertandingan berjalan. Buka kunci terlebih dahulu jika ingin mengacak ulang.");
+        return;
+      }
       saveTeamNames();
       const arr = [0, 1, 2, 3, 4, 5];
       for (let i = arr.length - 1; i > 0; i--) {
@@ -2296,6 +2381,34 @@
       indHtml += `</div>`;
       document.getElementById("individualJudgePassContainer").innerHTML = indHtml;
 
+      // Status Kunci Pembagian Grup
+      const isGroupsLocked = !!appState.groupsLocked;
+      const lockBadge = document.getElementById("groupLockStatusBadge");
+      const randBtn = document.getElementById("randomizeGroupsBtn");
+      const toggleLockBtn = document.getElementById("toggleGroupLockBtn");
+
+      if (lockBadge) {
+        if (isGroupsLocked) {
+          lockBadge.textContent = "TERKUNCI (Aman dari Acak)";
+          lockBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        } else {
+          lockBadge.textContent = "Terbuka (Dapat Diacak)";
+          lockBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-800 text-slate-300 border border-slate-700";
+        }
+      }
+      if (randBtn) {
+        randBtn.disabled = isGroupsLocked;
+      }
+      if (toggleLockBtn) {
+        if (isGroupsLocked) {
+          toggleLockBtn.textContent = "Buka Kunci Grup";
+          toggleLockBtn.className = "px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-xs font-bold transition";
+        } else {
+          toggleLockBtn.textContent = "Kunci Pembagian Grup";
+          toggleLockBtn.className = "px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition";
+        }
+      }
+
       document.getElementById("teamInputsGrid").innerHTML = appState.teams.map((t, idx) => `
         <div>
           <label class="text-[11px] text-slate-400">Tim ${idx + 1}</label>
@@ -2519,7 +2632,35 @@
       `;
     }
 
-    renderAll();
+    // =========================================================================
+    // 11. INISIALISASI & PEMULIHAN OTOMATIS SAAT HALAMAN DI-REFRESH
+    // =========================================================================
+    async function initApp() {
+      loadBrowserSession();
+      if (sessionAuth.activePin) {
+        const localData = loadLocalRoomState(sessionAuth.activePin);
+        if (localData) {
+          appState = localData;
+        }
+        switchRole(sessionAuth.role || "public");
+        subscribeToRoomPin(sessionAuth.activePin);
+
+        const cloudRes = await fetchRoomStateByPin(sessionAuth.activePin);
+        if (cloudRes.data) {
+          appState = cloudRes.data;
+          renderAll();
+        }
+      } else {
+        const lastPin = localStorage.getItem(LAST_HOST_PIN_KEY);
+        if (lastPin) {
+          const pinInput = document.getElementById("hostResumePinInput");
+          if (pinInput) pinInput.value = lastPin;
+        }
+        renderAll();
+      }
+    }
+
+    initApp();
   </script>
 </body>
 </html>
