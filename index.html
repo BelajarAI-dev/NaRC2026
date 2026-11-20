@@ -190,32 +190,65 @@
           </div>
         </div>
 
-        <!-- KONTROL TIMER PERTANDINGAN (5 MENIT / 05:00) -->
-        <div class="glass-card rounded-2xl p-5 border-amber-500/30 flex flex-wrap items-center justify-between gap-4">
-          <div class="flex items-center gap-4">
-            <div id="hostTimerBox" class="px-5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-center">
-              <div class="text-[10px] font-bold uppercase text-slate-400">TIMER LAGA (MAX 05:00)</div>
-              <div id="hostTimerDisplay" class="font-mono-timer text-3xl md:text-4xl font-black text-white">05:00</div>
+        <!-- KONTROL TIMER PERTANDINGAN DINAMIS (3 MENIT, 5 MENIT, MANUAL) -->
+        <div class="glass-card rounded-2xl p-5 border-amber-500/30 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div id="hostTimerBox" class="px-5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-center">
+                <div id="hostTimerBadgeLabel" class="text-[10px] font-bold uppercase text-slate-400">DURASI: 05:00</div>
+                <div id="hostTimerDisplay" class="font-mono-timer text-3xl md:text-4xl font-black text-white">05:00</div>
+              </div>
+              <div>
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM & JURI: bunyi gong keras saat mulai, detik menegangkan pada 10 detik terakhir, dan gong keras saat waktu habis.</p>
+              </div>
             </div>
-            <div>
-              <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
-              <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM & JURI: bunyi gong keras saat mulai, detik menegangkan pada 10 detik terakhir, dan gong keras saat waktu habis.</p>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="startMatchTimer()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/20">
+                Mulai / Lanjut
+              </button>
+              <button onclick="pauseMatchTimer()" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold">
+                Jeda (Pause)
+              </button>
+              <button onclick="resetMatchTimer()" id="hostResetTimerBtn" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">
+                Reset 05:00
+              </button>
+              <button onclick="testTimerSounds()" class="px-3 py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-indigo-300 text-xs font-semibold border border-indigo-700/50">
+                Tes Audio
+              </button>
             </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2">
-            <button onclick="startMatchTimer()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/20">
-              Mulai / Lanjut
-            </button>
-            <button onclick="pauseMatchTimer()" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold">
-              Jeda (Pause)
-            </button>
-            <button onclick="resetMatchTimer()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">
-              Reset 05:00
-            </button>
-            <button onclick="testTimerSounds()" class="px-3 py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-indigo-300 text-xs font-semibold border border-indigo-700/50">
-              Tes Audio
-            </button>
+          <!-- PENGATURAN DURASI WAKTU DINAMIS -->
+          <div class="pt-3 border-t border-slate-800/90 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400 mr-1">Setting Durasi:</span>
+              <button onclick="applyTimerDurationPreset(180)" id="preset-180" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-amber-500">
+                3 Menit (03:00)
+              </button>
+              <button onclick="applyTimerDurationPreset(300)" id="preset-300" class="px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-amber-600 text-white border-amber-500">
+                5 Menit (05:00)
+              </button>
+            </div>
+
+            <!-- INPUT MANUAL MENIT & DETIK -->
+            <div class="flex flex-wrap items-center gap-2 bg-slate-950/90 px-3 py-2 rounded-xl border border-slate-800">
+              <span class="text-xs font-semibold text-slate-300">Manual:</span>
+              <div class="flex items-center gap-1">
+                <input type="number" id="manualTimerMinutes" min="0" max="99" value="5" placeholder="Mnt"
+                  class="w-16 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-center font-mono-timer text-sm font-bold text-white focus:outline-none focus:border-amber-500" />
+                <span class="text-xs text-slate-400 font-bold">mnt</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <input type="number" id="manualTimerSeconds" min="0" max="59" value="0" placeholder="Dtk"
+                  class="w-16 px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-center font-mono-timer text-sm font-bold text-white focus:outline-none focus:border-amber-500" />
+                <span class="text-xs text-slate-400 font-bold">dtk</span>
+              </div>
+              <button onclick="applyManualTimerDuration()" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
+                Terapkan Waktu
+              </button>
+            </div>
           </div>
         </div>
 
@@ -452,13 +485,11 @@
       const now = audioCtx.currentTime;
       const duration = 3.2;
 
-      // Master compressor/gain agar gong terdengar lantang, dalam, dan bergema tanpa distorsi
       const masterGain = audioCtx.createGain();
       masterGain.gain.setValueAtTime(0.85, now);
       masterGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
       masterGain.connect(audioCtx.destination);
 
-      // Harmonik logam gong (fundamental rendah + overtone metalik)
       const partials = [
         { freq: 110, ratio: 1.0, amp: 0.75, type: "sine", decay: 3.1 },
         { freq: 165, ratio: 1.5, amp: 0.45, type: "triangle", decay: 2.6 },
@@ -471,7 +502,6 @@
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = p.type;
-        // Efek lenturan nada logam saat dipukul keras (pitch swell)
         osc.frequency.setValueAtTime(p.freq * 0.96, now);
         osc.frequency.exponentialRampToValueAtTime(p.freq * 1.02, now + 0.12);
         osc.frequency.exponentialRampToValueAtTime(p.freq * 0.99, now + p.decay);
@@ -505,14 +535,13 @@
       osc.stop(now + 0.065);
     }
 
-    // 2. Bunyi 10 detik terakhir: detik menegangkan (detak jantung bas + tik tajam makin cepat & tinggi)
+    // 2. Bunyi 10 detik terakhir: detik menegangkan
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
       if (!audioCtx) return;
       const now = audioCtx.currentTime;
 
-      // A. Dentuman detak jantung menegangkan (low thump)
       const subOsc = audioCtx.createOscillator();
       const subGain = audioCtx.createGain();
       subOsc.type = "sine";
@@ -525,7 +554,6 @@
       subOsc.start(now);
       subOsc.stop(now + 0.25);
 
-      // B. Bunyi detik tegang (double/triple pulse meninggi seiring sisa detik berkurang)
       const baseFreq = 980 + (10 - secLeft) * 95;
       const offsets = secLeft <= 3 ? [0, 0.25, 0.5, 0.75] : [0, 0.45];
 
@@ -554,9 +582,9 @@
     }
 
     // =========================================================================
-    // 3. STATE, TIMER 05:00 & AUTHENTICATION
+    // 3. STATE, TIMER DINAMIS & AUTHENTICATION
     // =========================================================================
-    const MATCH_DURATION_SEC = 300; // 5 menit = 300 detik
+    const DEFAULT_MATCH_DURATION_SEC = 300; // Default awal 5 menit = 300 detik
     const STORAGE_KEY = "turnamen_6tim_v4_state";
     const bc = new BroadcastChannel("turnamen_6tim_channel");
 
@@ -565,6 +593,11 @@
       hostLoggedIn: false,
       judgeNumber: null
     };
+
+    function getConfiguredDurationSec() {
+      const dur = Number(appState?.timer?.durationSec);
+      return dur > 0 ? dur : DEFAULT_MATCH_DURATION_SEC;
+    }
 
     function createDefaultState() {
       const teams = ["Tim Alpha", "Tim Bravo", "Tim Charlie", "Tim Delta", "Tim Echo", "Tim Foxtrot"];
@@ -582,7 +615,8 @@
           history: true
         },
         timer: {
-          remainingSec: MATCH_DURATION_SEC,
+          durationSec: DEFAULT_MATCH_DURATION_SEC,
+          remainingSec: DEFAULT_MATCH_DURATION_SEC,
           isRunning: false,
           endTimestamp: null,
           finished: false
@@ -631,14 +665,28 @@
 
     let appState = loadLocalState();
 
+    function normalizeTimerState(t) {
+      if (!t) {
+        return {
+          durationSec: DEFAULT_MATCH_DURATION_SEC,
+          remainingSec: DEFAULT_MATCH_DURATION_SEC,
+          isRunning: false,
+          endTimestamp: null,
+          finished: false
+        };
+      }
+      if (!t.durationSec || Number(t.durationSec) <= 0) {
+        t.durationSec = DEFAULT_MATCH_DURATION_SEC;
+      }
+      return t;
+    }
+
     function loadLocalState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (!parsed.timer) {
-            parsed.timer = { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null, finished: false };
-          }
+          parsed.timer = normalizeTimerState(parsed.timer);
           return parsed;
         }
       } catch (e) {}
@@ -657,6 +705,7 @@
     bc.onmessage = (ev) => {
       if (ev.data) {
         appState = ev.data;
+        appState.timer = normalizeTimerState(appState.timer);
         renderAll();
       }
     };
@@ -665,9 +714,7 @@
       dbRef.on("value", (snapshot) => {
         const val = snapshot.val();
         if (val) {
-          if (!val.timer) {
-            val.timer = { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null, finished: false };
-          }
+          val.timer = normalizeTimerState(val.timer);
           appState = val;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
@@ -678,15 +725,17 @@
     }
 
     // =========================================================================
-    // 4. LOGIKA COUNTDOWN TIMER REAL-TIME & AUDIO TRIGGER
+    // 4. LOGIKA COUNTDOWN TIMER DINAMIS REAL-TIME & AUDIO TRIGGER
     // =========================================================================
     function getCurrentRemainingSeconds() {
-      const t = appState.timer || { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null };
+      const configuredDur = getConfiguredDurationSec();
+      const t = appState.timer || { durationSec: configuredDur, remainingSec: configuredDur, isRunning: false, endTimestamp: null };
       if (t.isRunning && t.endTimestamp) {
         const diff = Math.ceil((t.endTimestamp - Date.now()) / 1000);
         return Math.max(0, diff);
       }
-      return Math.max(0, Number(t.remainingSec) ?? MATCH_DURATION_SEC);
+      const rem = Number(t.remainingSec);
+      return Number.isFinite(rem) ? Math.max(0, rem) : configuredDur;
     }
 
     function formatMMSS(totalSec) {
@@ -695,11 +744,51 @@
       return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     }
 
+    function applyTimerDurationPreset(seconds) {
+      const dur = Math.max(1, Number(seconds) || DEFAULT_MATCH_DURATION_SEC);
+      appState.timer = {
+        durationSec: dur,
+        remainingSec: dur,
+        isRunning: false,
+        endTimestamp: null,
+        finished: false
+      };
+      lastSoundedSecond = null;
+      lastKnownTimerRunning = false;
+
+      // Sinkronkan juga ke input manual agar terlihat jelas oleh Host
+      const mInput = document.getElementById("manualTimerMinutes");
+      const sInput = document.getElementById("manualTimerSeconds");
+      if (mInput) mInput.value = Math.floor(dur / 60);
+      if (sInput) sInput.value = dur % 60;
+
+      persistState();
+    }
+
+    function applyManualTimerDuration() {
+      const mInput = document.getElementById("manualTimerMinutes");
+      const sInput = document.getElementById("manualTimerSeconds");
+      const mins = Math.max(0, Math.min(99, parseInt(mInput?.value, 10) || 0));
+      const secs = Math.max(0, Math.min(59, parseInt(sInput?.value, 10) || 0));
+      const totalSec = mins * 60 + secs;
+
+      if (totalSec <= 0) {
+        alert("Durasi waktu minimal adalah 1 detik (00:01).");
+        return;
+      }
+
+      if (mInput) mInput.value = mins;
+      if (sInput) sInput.value = secs;
+      applyTimerDurationPreset(totalSec);
+    }
+
     function startMatchTimer() {
       ensureAudioContext();
+      const configuredDur = getConfiguredDurationSec();
       const rem = getCurrentRemainingSeconds();
       if (rem <= 0) return;
       appState.timer = {
+        durationSec: configuredDur,
         remainingSec: rem,
         isRunning: true,
         endTimestamp: Date.now() + rem * 1000,
@@ -710,8 +799,10 @@
     }
 
     function pauseMatchTimer() {
+      const configuredDur = getConfiguredDurationSec();
       const rem = getCurrentRemainingSeconds();
       appState.timer = {
+        durationSec: configuredDur,
         remainingSec: rem,
         isRunning: false,
         endTimestamp: null,
@@ -721,18 +812,56 @@
     }
 
     function resetMatchTimer() {
+      const configuredDur = getConfiguredDurationSec();
       appState.timer = {
-        remainingSec: MATCH_DURATION_SEC,
+        durationSec: configuredDur,
+        remainingSec: configuredDur,
         isRunning: false,
         endTimestamp: null,
         finished: false
       };
       lastSoundedSecond = null;
+      lastKnownTimerRunning = false;
       persistState();
     }
 
+    function updateTimerControlUI() {
+      const configuredDur = getConfiguredDurationSec();
+      const formattedDur = formatMMSS(configuredDur);
+
+      const badgeLabel = document.getElementById("hostTimerBadgeLabel");
+      const resetBtn = document.getElementById("hostResetTimerBtn");
+      const btn180 = document.getElementById("preset-180");
+      const btn300 = document.getElementById("preset-300");
+
+      if (badgeLabel) badgeLabel.textContent = `DURASI: ${formattedDur}`;
+      if (resetBtn) resetBtn.textContent = `Reset ${formattedDur}`;
+
+      if (btn180) {
+        btn180.className = configuredDur === 180
+          ? "px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/20"
+          : "px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-amber-500";
+      }
+      if (btn300) {
+        btn300.className = configuredDur === 300
+          ? "px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-600/20"
+          : "px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-amber-500";
+      }
+
+      // Isi input manual hanya jika user tidak sedang mengetik di dalamnya
+      const mInput = document.getElementById("manualTimerMinutes");
+      const sInput = document.getElementById("manualTimerSeconds");
+      if (mInput && document.activeElement !== mInput) {
+        mInput.value = Math.floor(configuredDur / 60);
+      }
+      if (sInput && document.activeElement !== sInput) {
+        sInput.value = configuredDur % 60;
+      }
+    }
+
     function updateTimerDisplaysAndAudio() {
-      const t = appState.timer || { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null, finished: false };
+      const configuredDur = getConfiguredDurationSec();
+      const t = appState.timer || { durationSec: configuredDur, remainingSec: configuredDur, isRunning: false, endTimestamp: null, finished: false };
       const rem = getCurrentRemainingSeconds();
       const formatted = formatMMSS(rem);
 
@@ -766,7 +895,7 @@
         if (pubDisp) pubDisp.className = "font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-white";
         if (pubBox) pubBox.className = "px-8 py-4 rounded-2xl bg-slate-950/90 border-2 border-indigo-500/40 text-center shadow-inner";
         if (pubStat) {
-          pubStat.textContent = t.isRunning ? "WAKTU BERJALAN" : (rem < MATCH_DURATION_SEC ? "WAKTU DIJEDA" : "SIAP DIMULAI");
+          pubStat.textContent = t.isRunning ? "WAKTU BERJALAN" : (rem < configuredDur ? "WAKTU DIJEDA" : "SIAP DIMULAI");
           pubStat.className = "text-xs font-semibold text-indigo-400 mt-1";
         }
         if (hostDisp) hostDisp.className = "font-mono-timer text-3xl md:text-4xl font-black text-white";
@@ -774,7 +903,7 @@
         if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center";
       }
 
-      // 1. Bunyi gong keras saat waktu mulai berjalan (sinkron di semua layar: Umum, Host, Juri)
+      // 1. Bunyi gong keras saat waktu mulai berjalan
       if (t.isRunning && !lastKnownTimerRunning && rem > 0) {
         playLoudGong();
       }
@@ -793,12 +922,12 @@
           playLoudGong();
           lastKnownTimerRunning = false;
           appState.timer = {
+            durationSec: configuredDur,
             remainingSec: 0,
             isRunning: false,
             endTimestamp: null,
             finished: true
           };
-          // Host memperbarui state selesai ke cloud agar sinkron
           if (sessionAuth.hostLoggedIn || !isFirebaseReady) {
             persistState();
           }
@@ -806,7 +935,6 @@
       }
     }
 
-    // Interval 200ms agar transisi setiap detik presisi dan mulus
     setInterval(updateTimerDisplaysAndAudio, 200);
 
     // =========================================================================
@@ -1010,14 +1138,17 @@
             appState.matches[k].status = "pending";
           }
         });
-        // Reset timer ke 05:00 saat mengaktifkan pertandingan baru ke LIVE
+        // Reset timer ke durasi yang sedang dikonfigurasi saat mengaktifkan pertandingan baru ke LIVE
+        const configuredDur = getConfiguredDurationSec();
         appState.timer = {
-          remainingSec: MATCH_DURATION_SEC,
+          durationSec: configuredDur,
+          remainingSec: configuredDur,
           isRunning: false,
           endTimestamp: null,
           finished: false
         };
         lastSoundedSecond = null;
+        lastKnownTimerRunning = false;
       }
       appState.matches[matchId].status = newStatus;
       if (newStatus === "completed") {
@@ -1074,6 +1205,7 @@
       if (confirm("Reset seluruh data turnamen ke awal?")) {
         appState = createDefaultState();
         lastSoundedSecond = null;
+        lastKnownTimerRunning = false;
         persistState();
       }
     }
@@ -1117,6 +1249,7 @@
 
     function renderAll() {
       document.getElementById("headerEventTitle").textContent = appState.eventTitle || "TURNAMEN 6 TIM";
+      updateTimerControlUI();
       updateTimerDisplaysAndAudio();
       renderPublicView();
       renderHostView();
