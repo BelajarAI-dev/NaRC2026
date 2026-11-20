@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistem Manajemen Turnamen — Multi-Role & Firebase</title>
+  <title>Sistem Manajemen Turnamen — Multi-Role, Firebase & Timer</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase App & Realtime Database SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap');
     body { font-family: 'Inter', sans-serif; background-color: #0b1120; color: #f8fafc; }
+    .font-mono-timer { font-family: 'JetBrains Mono', monospace; }
     .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15); }
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+    @keyframes pulseUrgent {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+    .timer-urgent { animation: pulseUrgent 0.6s infinite; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -47,6 +53,9 @@
       </nav>
 
       <div class="flex items-center gap-2">
+        <button onclick="toggleAudioMute()" id="audioToggleBtn" class="px-3 py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-xs font-semibold text-emerald-200 border border-emerald-700/60">
+          Suara: AKTIF
+        </button>
         <button onclick="toggleFullscreen()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">
           Layar Penuh
         </button>
@@ -61,16 +70,26 @@
     <!-- 1. LAYAR UMUM (PROYEKTOR / PENONTON)                      -->
     <!-- ========================================================= -->
     <section id="view-public" class="space-y-6">
-      <!-- LIVE MATCH SPOTLIGHT -->
+      <!-- LIVE MATCH SPOTLIGHT + COUNTDOWN TIMER -->
       <div id="pub-section-live" class="glass-card rounded-2xl p-6 border-indigo-500/30 shadow-xl">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="flex items-center gap-2">
             <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-600 text-white animate-pulse">SEDANG BERTANDING • LIVE</span>
             <span id="pubLiveStageLabel" class="text-xs font-semibold uppercase tracking-wider text-indigo-400">TAHAP 1 - GRUP A</span>
           </div>
           <span class="text-xs text-slate-400">Menampilkan Nilai Akhir (Rata-Rata Juri)</span>
         </div>
-        <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-4">
+
+        <!-- TIMER BESAR LAYAR UMUM -->
+        <div class="flex justify-center mb-6">
+          <div id="pubTimerBox" class="px-8 py-4 rounded-2xl bg-slate-950/90 border-2 border-indigo-500/40 text-center shadow-inner">
+            <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">SISA WAKTU PERTANDINGAN</div>
+            <div id="pubTimerDisplay" class="font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-white">05:00</div>
+            <div id="pubTimerStatusText" class="text-xs font-semibold text-indigo-400 mt-1">SIAP DIMULAI</div>
+          </div>
+        </div>
+
+        <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-2">
           <!-- Rendered by JS -->
         </div>
       </div>
@@ -159,7 +178,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 glass-card p-4 rounded-2xl">
           <div>
             <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Panel Kendali Utama</span>
-            <h2 class="text-lg font-extrabold text-white">Manajemen Turnamen & Penjurian</h2>
+            <h2 class="text-lg font-extrabold text-white">Manajemen Turnamen, Waktu & Penjurian</h2>
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="resetAllData()" class="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-semibold">
@@ -167,6 +186,35 @@
             </button>
             <button onclick="logoutHost()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
               Kunci Host
+            </button>
+          </div>
+        </div>
+
+        <!-- KONTROL TIMER PERTANDINGAN (5 MENIT / 05:00) -->
+        <div class="glass-card rounded-2xl p-5 border-amber-500/30 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div id="hostTimerBox" class="px-5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-center">
+              <div class="text-[10px] font-bold uppercase text-slate-400">TIMER LAGA (MAX 05:00)</div>
+              <div id="hostTimerDisplay" class="font-mono-timer text-3xl md:text-4xl font-black text-white">05:00</div>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
+              <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM dan Layar JURI beserta efek suara detik, 10 detik terakhir & alarm.</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="startMatchTimer()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/20">
+              Mulai / Lanjut
+            </button>
+            <button onclick="pauseMatchTimer()" class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold">
+              Jeda (Pause)
+            </button>
+            <button onclick="resetMatchTimer()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700">
+              Reset 05:00
+            </button>
+            <button onclick="testTimerSounds()" class="px-3 py-2.5 rounded-xl bg-indigo-950 hover:bg-indigo-900 text-indigo-300 text-xs font-semibold border border-indigo-700/50">
+              Tes Audio
             </button>
           </div>
         </div>
@@ -179,7 +227,7 @@
             <p class="text-xs text-slate-400">Centang bagian yang ingin ditampilkan pada proyektor penonton:</p>
             <div class="space-y-2.5 pt-1">
               <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
-                <span class="text-sm font-medium">Pertandingan Sedang LIVE</span>
+                <span class="text-sm font-medium">Pertandingan Sedang LIVE & Timer</span>
                 <input type="checkbox" id="chk-live" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
               </label>
               <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
@@ -233,9 +281,7 @@
               </div>
             </div>
 
-            <div id="individualJudgePassContainer" class="space-y-2 pt-1 border-t border-slate-800">
-              <!-- Opsional password per juri -->
-            </div>
+            <div id="individualJudgePassContainer" class="space-y-2 pt-1 border-t border-slate-800"></div>
           </div>
         </div>
 
@@ -289,9 +335,7 @@
         <form onsubmit="handleJudgeLogin(event)" class="space-y-4">
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Identitas Juri</label>
-            <select id="judgeSelectNumber" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white">
-              <!-- Diisi dinamis sesuai jumlah juri -->
-            </select>
+            <select id="judgeSelectNumber" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white"></select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Juri</label>
@@ -315,9 +359,17 @@
               <p class="text-xs text-slate-400">Hanya pertandingan berstatus <b>SEDANG BERTANDING (LIVE)</b> yang dapat dinilai.</p>
             </div>
           </div>
-          <button onclick="logoutJudge()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200">
-            Keluar Juri
-          </button>
+
+          <!-- TIMER DI LAYAR JURI -->
+          <div class="flex items-center gap-3">
+            <div id="judgeTimerBox" class="px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center">
+              <div class="text-[10px] font-bold uppercase text-slate-400">SISA WAKTU</div>
+              <div id="judgeTimerDisplay" class="font-mono-timer text-2xl font-black text-white">05:00</div>
+            </div>
+            <button onclick="logoutJudge()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200">
+              Keluar Juri
+            </button>
+          </div>
         </div>
 
         <div id="judgeLiveMatchArea"></div>
@@ -359,9 +411,116 @@
     }
 
     // =========================================================================
-    // 2. STATE & AUTHENTICATION
+    // 2. WEB AUDIO SYNTHESIZER (DETIK NORMAL, 10 DETIK MAU MELEDAK, ALARM)
     // =========================================================================
-    const STORAGE_KEY = "turnamen_6tim_v3_state";
+    let audioCtx = null;
+    let isAudioMuted = false;
+    let lastSoundedSecond = null;
+
+    function ensureAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+    }
+
+    // Aktifkan AudioContext pada interaksi klik pertama pengguna
+    document.addEventListener("click", ensureAudioContext, { once: false });
+
+    function toggleAudioMute() {
+      isAudioMuted = !isAudioMuted;
+      ensureAudioContext();
+      const btn = document.getElementById("audioToggleBtn");
+      if (isAudioMuted) {
+        btn.textContent = "Suara: MATI";
+        btn.className = "px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-400 border border-slate-700";
+      } else {
+        btn.textContent = "Suara: AKTIF";
+        btn.className = "px-3 py-1.5 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-xs font-semibold text-emerald-200 border border-emerald-700/60";
+      }
+    }
+
+    // Bunyi detik tiap detiknya (di atas 10 detik)
+    function playNormalTick() {
+      if (isAudioMuted) return;
+      ensureAudioContext();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(880, now);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.065);
+    }
+
+    // Bunyi pada 10 detik sisa: efek bom waktu / mau meledak (double beep cepat & meninggi)
+    function playCountdownBombSound(secLeft) {
+      if (isAudioMuted) return;
+      ensureAudioContext();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      // Pitch makin tinggi saat mendekati 1 detik
+      const baseFreq = 1100 + (10 - secLeft) * 110;
+      const pulses = secLeft <= 3 ? [0, 0.22, 0.44, 0.66] : [0, 0.35];
+
+      pulses.forEach(offset => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(baseFreq, now + offset);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, now + offset + 0.14);
+        gain.gain.setValueAtTime(0.28, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.15);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.16);
+      });
+    }
+
+    // Bunyi alarm ketika waktu habis (00:00)
+    function playTimeUpAlarm() {
+      if (isAudioMuted) return;
+      ensureAudioContext();
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      // Sirine alarm 2.4 detik
+      for (let i = 0; i < 6; i++) {
+        const start = now + i * 0.4;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "square";
+        osc.frequency.setValueAtTime(780, start);
+        osc.frequency.linearRampToValueAtTime(1250, start + 0.18);
+        osc.frequency.linearRampToValueAtTime(780, start + 0.36);
+        gain.gain.setValueAtTime(0.32, start);
+        gain.gain.exponentialRampToValueAtTime(0.01, start + 0.38);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.39);
+      }
+    }
+
+    function testTimerSounds() {
+      ensureAudioContext();
+      playCountdownBombSound(4);
+      setTimeout(() => playTimeUpAlarm(), 750);
+    }
+
+    // =========================================================================
+    // 3. STATE, TIMER 05:00 & AUTHENTICATION
+    // =========================================================================
+    const MATCH_DURATION_SEC = 300; // 5 menit = 300 detik
+    const STORAGE_KEY = "turnamen_6tim_v4_state";
     const bc = new BroadcastChannel("turnamen_6tim_channel");
 
     let sessionAuth = {
@@ -385,6 +544,12 @@
           podium: true,
           history: true
         },
+        timer: {
+          remainingSec: MATCH_DURATION_SEC,
+          isRunning: false,
+          endTimestamp: null,
+          finished: false
+        },
         teams: teams,
         groups: {
           A: [0, 1, 2],
@@ -396,19 +561,16 @@
 
     function generateInitialMatches(grpA, grpB) {
       const m = {};
-      // Tahap 1 Grup A (3 match)
       const pairsA = [[grpA[0], grpA[1]], [grpA[0], grpA[2]], [grpA[1], grpA[2]]];
       pairsA.forEach((p, idx) => {
         const id = `A${idx + 1}`;
         m[id] = makeMatchObj(id, "Tahap 1 - Grup A", `Grup A • Laga ${idx + 1}`, p[0], p[1], idx === 0 ? "live" : "pending");
       });
-      // Tahap 1 Grup B (3 match)
       const pairsB = [[grpB[0], grpB[1]], [grpB[0], grpB[2]], [grpB[1], grpB[2]]];
       pairsB.forEach((p, idx) => {
         const id = `B${idx + 1}`;
         m[id] = makeMatchObj(id, "Tahap 1 - Grup B", `Grup B • Laga ${idx + 1}`, p[0], p[1], "pending");
       });
-      // Tahap 2 Upper & Lower Bracket (6 match)
       m["P1"] = makeMatchObj("P1", "Tahap 2 - Upper Semifinal 1", "Match 1 (1A vs 2B)", null, null, "pending");
       m["P2"] = makeMatchObj("P2", "Tahap 2 - Upper Semifinal 2", "Match 2 (1B vs 2A)", null, null, "pending");
       m["P3"] = makeMatchObj("P3", "Tahap 2 - Upper Bracket Final", "Match 3 (W1 vs W2)", null, null, "pending");
@@ -425,8 +587,8 @@
         label,
         teamA,
         teamB,
-        status, // 'pending' | 'live' | 'completed'
-        judges: {} // { "1": { shootA, bonusA, penA, shootB, bonusB, penB, locked } }
+        status,
+        judges: {}
       };
     }
 
@@ -435,7 +597,13 @@
     function loadLocalState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (!parsed.timer) {
+            parsed.timer = { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null, finished: false };
+          }
+          return parsed;
+        }
       } catch (e) {}
       return createDefaultState();
     }
@@ -449,7 +617,6 @@
       renderAll();
     }
 
-    // Listener lintas tab & Firebase Cloud
     bc.onmessage = (ev) => {
       if (ev.data) {
         appState = ev.data;
@@ -461,6 +628,9 @@
       dbRef.on("value", (snapshot) => {
         const val = snapshot.val();
         if (val) {
+          if (!val.timer) {
+            val.timer = { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null, finished: false };
+          }
           appState = val;
           localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
           renderAll();
@@ -471,7 +641,130 @@
     }
 
     // =========================================================================
-    // 3. PERHITUNGAN SKOR RATA-RATA JURI & KLASEMEN
+    // 4. LOGIKA COUNTDOWN TIMER REAL-TIME & AUDIO TRIGGER
+    // =========================================================================
+    function getCurrentRemainingSeconds() {
+      const t = appState.timer || { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null };
+      if (t.isRunning && t.endTimestamp) {
+        const diff = Math.ceil((t.endTimestamp - Date.now()) / 1000);
+        return Math.max(0, diff);
+      }
+      return Math.max(0, Number(t.remainingSec) ?? MATCH_DURATION_SEC);
+    }
+
+    function formatMMSS(totalSec) {
+      const mins = Math.floor(totalSec / 60);
+      const secs = totalSec % 60;
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+
+    function startMatchTimer() {
+      ensureAudioContext();
+      const rem = getCurrentRemainingSeconds();
+      if (rem <= 0) return;
+      appState.timer = {
+        remainingSec: rem,
+        isRunning: true,
+        endTimestamp: Date.now() + rem * 1000,
+        finished: false
+      };
+      lastSoundedSecond = null;
+      persistState();
+    }
+
+    function pauseMatchTimer() {
+      const rem = getCurrentRemainingSeconds();
+      appState.timer = {
+        remainingSec: rem,
+        isRunning: false,
+        endTimestamp: null,
+        finished: false
+      };
+      persistState();
+    }
+
+    function resetMatchTimer() {
+      appState.timer = {
+        remainingSec: MATCH_DURATION_SEC,
+        isRunning: false,
+        endTimestamp: null,
+        finished: false
+      };
+      lastSoundedSecond = null;
+      persistState();
+    }
+
+    function updateTimerDisplaysAndAudio() {
+      const t = appState.timer || { remainingSec: MATCH_DURATION_SEC, isRunning: false, endTimestamp: null, finished: false };
+      const rem = getCurrentRemainingSeconds();
+      const formatted = formatMMSS(rem);
+
+      const pubDisp = document.getElementById("pubTimerDisplay");
+      const pubBox = document.getElementById("pubTimerBox");
+      const pubStat = document.getElementById("pubTimerStatusText");
+      const hostDisp = document.getElementById("hostTimerDisplay");
+      const judgeDisp = document.getElementById("judgeTimerDisplay");
+      const judgeBox = document.getElementById("judgeTimerBox");
+
+      if (pubDisp) pubDisp.textContent = formatted;
+      if (hostDisp) hostDisp.textContent = formatted;
+      if (judgeDisp) judgeDisp.textContent = formatted;
+
+      // Styling visual timer berdasarkan kondisi waktu
+      if (rem === 0) {
+        if (pubDisp) pubDisp.className = "font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-rose-500";
+        if (pubBox) pubBox.className = "px-8 py-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-center shadow-lg";
+        if (pubStat) { pubStat.textContent = "WAKTU HABIS!"; pubStat.className = "text-xs font-extrabold text-rose-400 mt-1"; }
+        if (hostDisp) hostDisp.className = "font-mono-timer text-3xl md:text-4xl font-black text-rose-500";
+        if (judgeDisp) judgeDisp.className = "font-mono-timer text-2xl font-black text-rose-500";
+        if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-rose-950/80 border border-rose-500 text-center";
+      } else if (rem <= 10 && t.isRunning) {
+        if (pubDisp) pubDisp.className = "font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-amber-400 timer-urgent";
+        if (pubBox) pubBox.className = "px-8 py-4 rounded-2xl bg-amber-950/70 border-2 border-amber-500 text-center shadow-lg";
+        if (pubStat) { pubStat.textContent = "10 DETIK TERAKHIR!"; pubStat.className = "text-xs font-extrabold text-amber-400 mt-1"; }
+        if (hostDisp) hostDisp.className = "font-mono-timer text-3xl md:text-4xl font-black text-amber-400";
+        if (judgeDisp) judgeDisp.className = "font-mono-timer text-2xl font-black text-amber-400 timer-urgent";
+        if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-amber-950/70 border border-amber-500 text-center";
+      } else {
+        if (pubDisp) pubDisp.className = "font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-white";
+        if (pubBox) pubBox.className = "px-8 py-4 rounded-2xl bg-slate-950/90 border-2 border-indigo-500/40 text-center shadow-inner";
+        if (pubStat) {
+          pubStat.textContent = t.isRunning ? "WAKTU BERJALAN" : (rem < MATCH_DURATION_SEC ? "WAKTU DIJEDA" : "SIAP DIMULAI");
+          pubStat.className = "text-xs font-semibold text-indigo-400 mt-1";
+        }
+        if (hostDisp) hostDisp.className = "font-mono-timer text-3xl md:text-4xl font-black text-white";
+        if (judgeDisp) judgeDisp.className = "font-mono-timer text-2xl font-black text-white";
+        if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center";
+      }
+
+      // Pemicu bunyi tiap detik saat timer aktif berjalan
+      if (t.isRunning && lastSoundedSecond !== rem) {
+        lastSoundedSecond = rem;
+        if (rem > 10) {
+          playNormalTick();
+        } else if (rem >= 1 && rem <= 10) {
+          playCountdownBombSound(rem);
+        } else if (rem === 0) {
+          playTimeUpAlarm();
+          appState.timer = {
+            remainingSec: 0,
+            isRunning: false,
+            endTimestamp: null,
+            finished: true
+          };
+          // Host memperbarui state selesai ke cloud agar sinkron
+          if (sessionAuth.hostLoggedIn || !isFirebaseReady) {
+            persistState();
+          }
+        }
+      }
+    }
+
+    // Interval 200ms agar transisi setiap detik presisi dan mulus
+    setInterval(updateTimerDisplaysAndAudio, 200);
+
+    // =========================================================================
+    // 5. PERHITUNGAN SKOR RATA-RATA JURI & KLASEMEN
     // =========================================================================
     function getMatchAverageScores(match) {
       const count = Number(appState.judgeCount) || 2;
@@ -498,7 +791,6 @@
       const { avgA, avgB, avgPenA, avgPenB } = getMatchAverageScores(match);
       if (avgA > avgB) return { winner: match.teamA, loser: match.teamB };
       if (avgB > avgA) return { winner: match.teamB, loser: match.teamA };
-      // Tie-breaker: penalti lebih sedikit menang
       if (avgPenA <= avgPenB) return { winner: match.teamA, loser: match.teamB };
       return { winner: match.teamB, loser: match.teamA };
     }
@@ -537,7 +829,7 @@
     }
 
     // =========================================================================
-    // 4. NAVIGASI ROLE & AUTENTIKASI LOGIN
+    // 6. NAVIGASI ROLE & AUTENTIKASI LOGIN
     // =========================================================================
     function switchRole(role) {
       sessionAuth.role = role;
@@ -602,7 +894,7 @@
     }
 
     // =========================================================================
-    // 5. AKSI HOST (CHECKLIST, JURI, TIM, STATUS MATCH, BRACKET)
+    // 7. AKSI HOST (CHECKLIST, JURI, TIM, STATUS MATCH, BRACKET)
     // =========================================================================
     function updatePublicVisibility() {
       appState.publicVisibility = {
@@ -666,13 +958,20 @@
     }
 
     function setMatchStatus(matchId, newStatus) {
-      // Hanya 1 pertandingan yang boleh berstatus 'live' pada satu waktu
       if (newStatus === "live") {
         Object.keys(appState.matches).forEach(k => {
           if (appState.matches[k].status === "live") {
             appState.matches[k].status = "pending";
           }
         });
+        // Reset timer ke 05:00 saat mengaktifkan pertandingan baru ke LIVE
+        appState.timer = {
+          remainingSec: MATCH_DURATION_SEC,
+          isRunning: false,
+          endTimestamp: null,
+          finished: false
+        };
+        lastSoundedSecond = null;
       }
       appState.matches[matchId].status = newStatus;
       if (newStatus === "completed") {
@@ -692,10 +991,10 @@
       const standA = computeGroupStandings("A");
       const standB = computeGroupStandings("B");
       if (standA.length >= 2 && standB.length >= 2) {
-        appState.matches["P1"].teamA = standA[0].teamIdx; // 1A
-        appState.matches["P1"].teamB = standB[1].teamIdx; // 2B
-        appState.matches["P2"].teamA = standB[0].teamIdx; // 1B
-        appState.matches["P2"].teamB = standA[1].teamIdx; // 2A
+        appState.matches["P1"].teamA = standA[0].teamIdx;
+        appState.matches["P1"].teamB = standB[1].teamIdx;
+        appState.matches["P2"].teamA = standB[0].teamIdx;
+        appState.matches["P2"].teamB = standA[1].teamIdx;
         propagateBracketProgression();
         persistState();
       }
@@ -728,12 +1027,13 @@
     function resetAllData() {
       if (confirm("Reset seluruh data turnamen ke awal?")) {
         appState = createDefaultState();
+        lastSoundedSecond = null;
         persistState();
       }
     }
 
     // =========================================================================
-    // 6. AKSI JURI (INPUT SKOR LAGA LIVE)
+    // 8. AKSI JURI (INPUT SKOR LAGA LIVE)
     // =========================================================================
     function updateJudgeScore(matchId, jNum, field, deltaOrVal, isDirect = false) {
       const match = appState.matches[matchId];
@@ -762,7 +1062,7 @@
     }
 
     // =========================================================================
-    // 7. RENDERING SEMUA TAMPILAN
+    // 9. RENDERING SEMUA TAMPILAN
     // =========================================================================
     function getTeamName(idx) {
       if (idx === null || idx === undefined) return "Menunggu Hasil";
@@ -771,6 +1071,7 @@
 
     function renderAll() {
       document.getElementById("headerEventTitle").textContent = appState.eventTitle || "TURNAMEN 6 TIM";
+      updateTimerDisplaysAndAudio();
       renderPublicView();
       renderHostView();
       renderJudgeView();
@@ -784,7 +1085,6 @@
       document.getElementById("pub-section-podium").classList.toggle("hidden", !vis.podium);
       document.getElementById("pub-section-history").classList.toggle("hidden", !vis.history);
 
-      // Live Match
       const liveMatch = Object.values(appState.matches).find(m => m.status === "live");
       const liveContainer = document.getElementById("pubLiveContent");
       const liveStageEl = document.getElementById("pubLiveStageLabel");
@@ -814,7 +1114,7 @@
         `;
       } else {
         liveStageEl.textContent = "MENUNGGU PERTANDINGAN BERIKUTNYA";
-        liveContainer.innerHTML = `<div class="col-span-3 text-center py-8 text-slate-400 text-sm">Belum ada pertandingan berstatus LIVE saat ini.</div>`;
+        liveContainer.innerHTML = `<div class="col-span-3 text-center py-6 text-slate-400 text-sm">Belum ada pertandingan berstatus LIVE saat ini.</div>`;
       }
 
       // Klasemen A & B
@@ -914,7 +1214,6 @@
       document.getElementById("hostDashboard").classList.toggle("hidden", !loggedIn);
       if (!loggedIn) return;
 
-      // Sync checklist
       const vis = appState.publicVisibility || {};
       document.getElementById("chk-live").checked = !!vis.live;
       document.getElementById("chk-standings").checked = !!vis.standings;
@@ -922,11 +1221,9 @@
       document.getElementById("chk-podium").checked = !!vis.podium;
       document.getElementById("chk-history").checked = !!vis.history;
 
-      // Sync config inputs
       document.getElementById("cfgEventTitle").value = appState.eventTitle || "";
       document.getElementById("cfgJudgeCount").value = appState.judgeCount || 2;
 
-      // Password spesifik per juri
       const count = Number(appState.judgeCount) || 2;
       let indHtml = `<div class="text-xs text-slate-400 mb-1">Password Khusus Per Juri (Kosongkan jika pakai password global):</div><div class="grid grid-cols-2 sm:grid-cols-3 gap-2">`;
       for (let j = 1; j <= count; j++) {
@@ -942,7 +1239,6 @@
       indHtml += `</div>`;
       document.getElementById("individualJudgePassContainer").innerHTML = indHtml;
 
-      // Team Inputs
       document.getElementById("teamInputsGrid").innerHTML = appState.teams.map((t, idx) => `
         <div>
           <label class="text-[11px] text-slate-400">Tim ${idx + 1}</label>
@@ -953,7 +1249,6 @@
       document.getElementById("hostGroupAList").textContent = appState.groups.A.map(i => getTeamName(i)).join(" • ");
       document.getElementById("hostGroupBList").textContent = appState.groups.B.map(i => getTeamName(i)).join(" • ");
 
-      // Matches List & Judge Monitoring
       const order = ["A1", "A2", "A3", "B1", "B2", "B3", "P1", "P2", "P3", "P4", "P5", "P6"];
       document.getElementById("hostMatchesContainer").innerHTML = order.map(id => {
         const m = appState.matches[id];
@@ -1002,7 +1297,6 @@
     }
 
     function renderJudgeView() {
-      // Populate dropdown jumlah juri di form login
       const count = Number(appState.judgeCount) || 2;
       const sel = document.getElementById("judgeSelectNumber");
       const prevVal = sel.value;
