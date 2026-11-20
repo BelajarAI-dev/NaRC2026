@@ -156,7 +156,7 @@
     <!-- 2. TAMPILAN HOST (LOGIN + KONTROL PENUH)                  -->
     <!-- ========================================================= -->
     <section id="view-host" class="hidden space-y-6">
-      <!-- FORM LOGIN HOST -->
+      <!-- FORM LOGIN HOST (TANPA PETUNJUK PASSWORD) -->
       <div id="hostLoginBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl">
         <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
         <p class="text-xs text-slate-400 mb-6">Masukkan kredensial otorisasi penyelenggara untuk membuka panel kendali.</p>
@@ -200,7 +200,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM & JURI: memutar audio eksternal gong saat mulai, audio menegangkan 10 detik terakhir, dan gong saat waktu habis.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi otomatis ke Layar UMUM & JURI: bunyi gong keras saat mulai, detik menegangkan pada 10 detik terakhir, dan gong keras saat waktu habis.</p>
               </div>
             </div>
 
@@ -361,7 +361,7 @@
     <!-- 3. TAMPILAN JURI (LOGIN + TERMINAL PENILAIAN LAGA LIVE)   -->
     <!-- ========================================================= -->
     <section id="view-judge" class="hidden space-y-6">
-      <!-- FORM LOGIN JURI -->
+      <!-- FORM LOGIN JURI (TANPA PETUNJUK PASSWORD) -->
       <div id="judgeLoginBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl">
         <h2 class="text-xl font-extrabold text-white mb-1">Terminal Penilaian Juri</h2>
         <p class="text-xs text-slate-400 mb-6">Pilih nomor juri Anda dan masukkan password dari Host.</p>
@@ -444,23 +444,12 @@
     }
 
     // =========================================================================
-    // 2. SISTEM MEDIA AUDIO EKSTERNAL + FALLBACK WEB AUDIO SYNTHESIZER
+    // 2. WEB AUDIO SYNTHESIZER (GONG MULAI, DETIK TEGANG 10s, GONG SELESAI)
     // =========================================================================
-    // Letakkan file audio hasil ekstrak di folder yang sama dengan file HTML ini:
-    const GONG_AUDIO_SRC = "gong.mp3";
-    const TENSE_AUDIO_SRC = "tense10s.mp3";
-
-    const externalGongAudio = new Audio(GONG_AUDIO_SRC);
-    externalGongAudio.preload = "auto";
-
-    const externalTenseAudio = new Audio(TENSE_AUDIO_SRC);
-    externalTenseAudio.preload = "auto";
-
     let audioCtx = null;
     let isAudioMuted = false;
     let lastSoundedSecond = null;
     let lastKnownTimerRunning = false;
-    let isTenseLoopPlaying = false;
 
     function ensureAudioContext() {
       if (!audioCtx) {
@@ -472,36 +461,12 @@
       }
     }
 
-    // Unlock audio policy browser pada klik pertama
-    function unlockAllAudio() {
-      ensureAudioContext();
-      [externalGongAudio, externalTenseAudio].forEach(aud => {
-        if (aud && aud.readyState === 0) {
-          aud.load();
-        }
-      });
-    }
-    document.addEventListener("click", unlockAllAudio, { once: false });
-
-    function stopExternalTenseAudio() {
-      if (!externalTenseAudio.paused) {
-        externalTenseAudio.pause();
-      }
-      externalTenseAudio.currentTime = 0;
-      externalTenseAudio.loop = false;
-      isTenseLoopPlaying = false;
-    }
+    // Aktifkan AudioContext pada interaksi klik pertama pengguna
+    document.addEventListener("click", ensureAudioContext, { once: false });
 
     function toggleAudioMute() {
       isAudioMuted = !isAudioMuted;
       ensureAudioContext();
-      externalGongAudio.muted = isAudioMuted;
-      externalTenseAudio.muted = isAudioMuted;
-
-      if (isAudioMuted) {
-        stopExternalTenseAudio();
-      }
-
       const btn = document.getElementById("audioToggleBtn");
       if (isAudioMuted) {
         btn.textContent = "Suara: MATI";
@@ -512,26 +477,11 @@
       }
     }
 
-    // 1. Bunyi Gong (Memutar file eksternal gong.mp3, fallback synth jika file tidak ada)
+    // 1. Bunyi Gong Keras (Saat waktu dimulai & saat waktu habis)
     function playLoudGong() {
       if (isAudioMuted) return;
       ensureAudioContext();
-
-      try {
-        externalGongAudio.currentTime = 0;
-        const playPromise = externalGongAudio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            playSynthGongFallback();
-          });
-        }
-      } catch (err) {
-        playSynthGongFallback();
-      }
-    }
-
-    function playSynthGongFallback() {
-      if (isAudioMuted || !audioCtx) return;
+      if (!audioCtx) return;
       const now = audioCtx.currentTime;
       const duration = 3.2;
 
@@ -541,11 +491,11 @@
       masterGain.connect(audioCtx.destination);
 
       const partials = [
-        { freq: 110, amp: 0.75, type: "sine", decay: 3.1 },
-        { freq: 165, amp: 0.45, type: "triangle", decay: 2.6 },
-        { freq: 242, amp: 0.35, type: "sine", decay: 2.1 },
-        { freq: 318, amp: 0.25, type: "sawtooth", decay: 1.4 },
-        { freq: 440, amp: 0.18, type: "sine", decay: 1.1 }
+        { freq: 110, ratio: 1.0, amp: 0.75, type: "sine", decay: 3.1 },
+        { freq: 165, ratio: 1.5, amp: 0.45, type: "triangle", decay: 2.6 },
+        { freq: 242, ratio: 2.2, amp: 0.35, type: "sine", decay: 2.1 },
+        { freq: 318, ratio: 2.89, amp: 0.25, type: "sawtooth", decay: 1.4 },
+        { freq: 440, ratio: 4.0, amp: 0.18, type: "sine", decay: 1.1 }
       ];
 
       partials.forEach(p => {
@@ -585,41 +535,11 @@
       osc.stop(now + 0.065);
     }
 
-    // 2. Bunyi 10 detik terakhir: memutar file eksternal tense10s.mp3 (fallback synth)
+    // 2. Bunyi 10 detik terakhir: detik menegangkan
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
-
-      // Jika file eksternal sudah sedang diputar kontinyu selama fase 10 detik terakhir, biarkan berlanjut
-      if (isTenseLoopPlaying && !externalTenseAudio.paused) {
-        return;
-      }
-
-      try {
-        if (secLeft === 10 || !isTenseLoopPlaying) {
-          externalTenseAudio.currentTime = 0;
-          externalTenseAudio.loop = true;
-          const playPromise = externalTenseAudio.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                isTenseLoopPlaying = true;
-              })
-              .catch(() => {
-                isTenseLoopPlaying = false;
-                playSynthTenseFallback(secLeft);
-              });
-            return;
-          }
-        }
-      } catch (err) {
-        isTenseLoopPlaying = false;
-        playSynthTenseFallback(secLeft);
-      }
-    }
-
-    function playSynthTenseFallback(secLeft) {
-      if (isAudioMuted || !audioCtx) return;
+      if (!audioCtx) return;
       const now = audioCtx.currentTime;
 
       const subOsc = audioCtx.createOscillator();
@@ -656,15 +576,9 @@
     }
 
     function testTimerSounds() {
-      unlockAllAudio();
-      stopExternalTenseAudio();
+      ensureAudioContext();
       playLoudGong();
-      setTimeout(() => {
-        playTenseCountdownSound(3);
-        setTimeout(() => {
-          stopExternalTenseAudio();
-        }, 2500);
-      }, 1500);
+      setTimeout(() => playTenseCountdownSound(3), 1400);
     }
 
     // =========================================================================
@@ -832,7 +746,6 @@
 
     function applyTimerDurationPreset(seconds) {
       const dur = Math.max(1, Number(seconds) || DEFAULT_MATCH_DURATION_SEC);
-      stopExternalTenseAudio();
       appState.timer = {
         durationSec: dur,
         remainingSec: dur,
@@ -843,6 +756,7 @@
       lastSoundedSecond = null;
       lastKnownTimerRunning = false;
 
+      // Sinkronkan juga ke input manual agar terlihat jelas oleh Host
       const mInput = document.getElementById("manualTimerMinutes");
       const sInput = document.getElementById("manualTimerSeconds");
       if (mInput) mInput.value = Math.floor(dur / 60);
@@ -869,7 +783,7 @@
     }
 
     function startMatchTimer() {
-      unlockAllAudio();
+      ensureAudioContext();
       const configuredDur = getConfiguredDurationSec();
       const rem = getCurrentRemainingSeconds();
       if (rem <= 0) return;
@@ -885,7 +799,6 @@
     }
 
     function pauseMatchTimer() {
-      stopExternalTenseAudio();
       const configuredDur = getConfiguredDurationSec();
       const rem = getCurrentRemainingSeconds();
       appState.timer = {
@@ -899,7 +812,6 @@
     }
 
     function resetMatchTimer() {
-      stopExternalTenseAudio();
       const configuredDur = getConfiguredDurationSec();
       appState.timer = {
         durationSec: configuredDur,
@@ -936,6 +848,7 @@
           : "px-3.5 py-1.5 rounded-lg text-xs font-bold border transition bg-slate-900 text-slate-300 border-slate-700 hover:border-amber-500";
       }
 
+      // Isi input manual hanya jika user tidak sedang mengetik di dalamnya
       const mInput = document.getElementById("manualTimerMinutes");
       const sInput = document.getElementById("manualTimerSeconds");
       if (mInput && document.activeElement !== mInput) {
@@ -962,11 +875,6 @@
       if (pubDisp) pubDisp.textContent = formatted;
       if (hostDisp) hostDisp.textContent = formatted;
       if (judgeDisp) judgeDisp.textContent = formatted;
-
-      // Jika timer dihentikan/dijeda dari perangkat lain, pastikan audio 10 detik berhenti
-      if (!t.isRunning && isTenseLoopPlaying) {
-        stopExternalTenseAudio();
-      }
 
       // Styling visual timer berdasarkan kondisi waktu
       if (rem === 0) {
@@ -1010,8 +918,7 @@
         } else if (rem >= 1 && rem <= 10) {
           playTenseCountdownSound(rem);
         } else if (rem === 0) {
-          // 3. Hentikan audio 10 detik terakhir & bunyikan gong keras saat waktu habis (00:00)
-          stopExternalTenseAudio();
+          // 3. Bunyi gong keras lagi ketika waktu habis (00:00)
           playLoudGong();
           lastKnownTimerRunning = false;
           appState.timer = {
@@ -1226,12 +1133,12 @@
 
     function setMatchStatus(matchId, newStatus) {
       if (newStatus === "live") {
-        stopExternalTenseAudio();
         Object.keys(appState.matches).forEach(k => {
           if (appState.matches[k].status === "live") {
             appState.matches[k].status = "pending";
           }
         });
+        // Reset timer ke durasi yang sedang dikonfigurasi saat mengaktifkan pertandingan baru ke LIVE
         const configuredDur = getConfiguredDurationSec();
         appState.timer = {
           durationSec: configuredDur,
@@ -1296,7 +1203,6 @@
 
     function resetAllData() {
       if (confirm("Reset seluruh data turnamen ke awal?")) {
-        stopExternalTenseAudio();
         appState = createDefaultState();
         lastSoundedSecond = null;
         lastKnownTimerRunning = false;
