@@ -200,7 +200,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi ke Layar UMUM & JURI: suara gong saat mulai & habis, suara detik saat hitung mundur berjalan, dan alarm emergency pada 10 detik terakhir.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi ke Layar UMUM & JURI: gong mulai & habis, sound tegang loop paralel selama pertandingan, suara detik tiap detik, dan alarm emergency 10 detik terakhir.</p>
               </div>
             </div>
 
@@ -220,14 +220,17 @@
               <button onclick="testTickSound()" class="px-3 py-2.5 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-300 text-xs font-semibold border border-amber-700/50">
                 Tes Detik
               </button>
+              <button onclick="toggleTestTenseBgm()" id="testTenseBgmBtn" class="px-3 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-200 text-xs font-semibold border border-purple-700/50">
+                Tes Sound Tegang
+              </button>
               <button onclick="test10SecondsCountdown()" class="px-3 py-2.5 rounded-xl bg-rose-950/80 hover:bg-rose-900 text-rose-200 text-xs font-bold border border-rose-700/60">
                 Tes 10 Detik
               </button>
             </div>
           </div>
 
-          <!-- UPLOAD / MUAT LANGSUNG AUDIO DARI FILE VIDEO/AUDIO (GONG, DETIK, EMERGENCY) -->
-          <div class="pt-3 border-t border-slate-800/90 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- UPLOAD / MUAT LANGSUNG AUDIO DARI FILE VIDEO/AUDIO (GONG, DETIK, SOUND TEGANG, EMERGENCY) -->
+          <div class="pt-3 border-t border-slate-800/90 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
               <div class="text-xs min-w-0">
                 <div class="font-bold text-indigo-300">Suara Gong</div>
@@ -241,7 +244,7 @@
 
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
               <div class="text-xs min-w-0">
-                <div class="font-bold text-amber-300">Suara Detik Pertandingan</div>
+                <div class="font-bold text-amber-300">Suara Detik</div>
                 <div id="tickSourceStatus" class="text-[11px] text-slate-400 truncate">Default: tick.mp3 / Synth Detik</div>
               </div>
               <label class="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold cursor-pointer shrink-0">
@@ -252,8 +255,19 @@
 
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
               <div class="text-xs min-w-0">
-                <div class="font-bold text-rose-300">Suara Emergency 10 Detik</div>
-                <div id="tenseSourceStatus" class="text-[11px] text-slate-400 truncate">Default: tense10s.mp3 / Alarm Emergency</div>
+                <div class="font-bold text-purple-300">Sound Tegang (Loop)</div>
+                <div id="bgmSourceStatus" class="text-[11px] text-slate-400 truncate">Default: bgm_tense.mp3 / Nonaktif</div>
+              </div>
+              <label class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold cursor-pointer shrink-0">
+                Pilih Video/Audio
+                <input type="file" accept="video/*,audio/*" onchange="loadCustomMediaAudio('bgm', this)" class="hidden" />
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
+              <div class="text-xs min-w-0">
+                <div class="font-bold text-rose-300">Suara Emergency 10s</div>
+                <div id="tenseSourceStatus" class="text-[11px] text-slate-400 truncate">Default: tense10s.mp3 / Alarm</div>
               </div>
               <label class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer shrink-0">
                 Pilih Video/Audio
@@ -486,10 +500,11 @@
     }
 
     // =========================================================================
-    // 2. SISTEM MEDIA AUDIO (GONG, DETIK PERTANDINGAN, EMERGENCY + SYNTH)
+    // 2. SISTEM MEDIA AUDIO PARALEL (GONG, DETIK, SOUND TEGANG LOOP, EMERGENCY)
     // =========================================================================
     const GONG_AUDIO_SRC = "gong.mp3";
     const TICK_AUDIO_SRC = "tick.mp3";
+    const BGM_TENSE_AUDIO_SRC = "bgm_tense.mp3";
     const TENSE_AUDIO_SRC = "tense10s.mp3";
 
     const externalGongAudio = new Audio(GONG_AUDIO_SRC);
@@ -498,11 +513,16 @@
     const externalTickAudio = new Audio(TICK_AUDIO_SRC);
     externalTickAudio.preload = "auto";
 
+    const externalBgmTenseAudio = new Audio(BGM_TENSE_AUDIO_SRC);
+    externalBgmTenseAudio.preload = "auto";
+    externalBgmTenseAudio.loop = true;
+
     const externalTenseAudio = new Audio(TENSE_AUDIO_SRC);
     externalTenseAudio.preload = "auto";
 
     let customGongObjectUrl = null;
     let customTickObjectUrl = null;
+    let customBgmObjectUrl = null;
     let customTenseObjectUrl = null;
 
     let audioCtx = null;
@@ -510,6 +530,8 @@
     let lastSoundedSecond = null;
     let lastKnownTimerRunning = false;
     let isTenseLoopPlaying = false;
+    let isBgmTensePlaying = false;
+    let isTestingBgmTense = false;
 
     function loadCustomMediaAudio(type, inputEl) {
       const file = inputEl.files && inputEl.files[0];
@@ -530,6 +552,18 @@
         externalTickAudio.load();
         const st = document.getElementById("tickSourceStatus");
         if (st) st.textContent = `Aktif: ${file.name}`;
+      } else if (type === "bgm") {
+        if (customBgmObjectUrl) URL.revokeObjectURL(customBgmObjectUrl);
+        customBgmObjectUrl = objUrl;
+        externalBgmTenseAudio.src = objUrl;
+        externalBgmTenseAudio.loop = true;
+        externalBgmTenseAudio.load();
+        const st = document.getElementById("bgmSourceStatus");
+        if (st) st.textContent = `Aktif: ${file.name}`;
+        // Jika timer sedang berjalan saat file diupload, langsung putar paralel
+        if (appState?.timer?.isRunning && !isAudioMuted) {
+          startBgmTenseLoop();
+        }
       } else if (type === "tense") {
         if (customTenseObjectUrl) URL.revokeObjectURL(customTenseObjectUrl);
         customTenseObjectUrl = objUrl;
@@ -552,13 +586,67 @@
 
     function unlockAllAudio() {
       ensureAudioContext();
-      [externalGongAudio, externalTickAudio, externalTenseAudio].forEach(aud => {
+      [externalGongAudio, externalTickAudio, externalBgmTenseAudio, externalTenseAudio].forEach(aud => {
         if (aud && aud.readyState === 0) {
           aud.load();
         }
       });
     }
     document.addEventListener("click", unlockAllAudio, { once: false });
+
+    // Kontrol Sound Tegang Background (Berjalan Paralel & Loop Selama Pertandingan)
+    function startBgmTenseLoop() {
+      if (isAudioMuted) return;
+      ensureAudioContext();
+      if (isBgmTensePlaying && !externalBgmTenseAudio.paused) return;
+
+      try {
+        externalBgmTenseAudio.loop = true;
+        const playPromise = externalBgmTenseAudio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              isBgmTensePlaying = true;
+            })
+            .catch(() => {
+              isBgmTensePlaying = false;
+            });
+        }
+      } catch (err) {
+        isBgmTensePlaying = false;
+      }
+    }
+
+    function stopBgmTenseLoop() {
+      if (!externalBgmTenseAudio.paused) {
+        externalBgmTenseAudio.pause();
+      }
+      externalBgmTenseAudio.currentTime = 0;
+      isBgmTensePlaying = false;
+      isTestingBgmTense = false;
+      const btn = document.getElementById("testTenseBgmBtn");
+      if (btn) btn.textContent = "Tes Sound Tegang";
+    }
+
+    function toggleTestTenseBgm() {
+      unlockAllAudio();
+      const btn = document.getElementById("testTenseBgmBtn");
+      if (isTestingBgmTense) {
+        stopBgmTenseLoop();
+      } else {
+        externalBgmTenseAudio.currentTime = 0;
+        externalBgmTenseAudio.loop = true;
+        externalBgmTenseAudio.play()
+          .then(() => {
+            isBgmTensePlaying = true;
+            isTestingBgmTense = true;
+            if (btn) btn.textContent = "Stop Sound Tegang";
+          })
+          .catch(() => {
+            alert("Pilih file video/audio Sound Tegang terlebih dahulu atau pastikan file bgm_tense.mp3 tersedia.");
+          });
+      }
+    }
 
     function stopExternalTenseAudio() {
       if (!externalTenseAudio.paused) {
@@ -581,11 +669,15 @@
       ensureAudioContext();
       externalGongAudio.muted = isAudioMuted;
       externalTickAudio.muted = isAudioMuted;
+      externalBgmTenseAudio.muted = isAudioMuted;
       externalTenseAudio.muted = isAudioMuted;
 
       if (isAudioMuted) {
         stopExternalTenseAudio();
         stopExternalTickAudio();
+        stopBgmTenseLoop();
+      } else if (appState?.timer?.isRunning && getCurrentRemainingSeconds() > 0) {
+        startBgmTenseLoop();
       }
 
       const btn = document.getElementById("audioToggleBtn");
@@ -598,7 +690,7 @@
       }
     }
 
-    // 1. Bunyi Gong Besar
+    // 1. Bunyi Gong Besar (Paralel)
     function playLoudGong() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -616,7 +708,6 @@
       }
     }
 
-    // Sintesis Gong Agung Besar
     function playSynthGongFallback() {
       if (isAudioMuted || !audioCtx) return;
       const now = audioCtx.currentTime;
@@ -664,7 +755,7 @@
       lfo.stop(now + duration);
     }
 
-    // 2. Bunyi Detik Pertandingan (Memutar file upload / tick.mp3 per detik, fallback synth)
+    // 2. Bunyi Detik Pertandingan (Paralel)
     function playNormalTick() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -697,7 +788,7 @@
       osc.stop(now + 0.065);
     }
 
-    // 3. Bunyi Emergency 10 Detik Terakhir
+    // 3. Bunyi Emergency 10 Detik Terakhir (Paralel dengan Sound Tegang)
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -784,11 +875,12 @@
       playNormalTick();
     }
 
-    // Tombol Tes 10 Detik (Simulasi langsung hitung mundur 00:10 -> 00:00 + Gong Habis)
+    // Tombol Tes 10 Detik (Simulasi langsung hitung mundur 00:10 -> 00:00 + Gong Habis + Sound Tegang Paralel)
     function test10SecondsCountdown() {
       unlockAllAudio();
       stopExternalTenseAudio();
       stopExternalTickAudio();
+      stopBgmTenseLoop();
       const configuredDur = getConfiguredDurationSec();
       appState.timer = {
         durationSec: configuredDur,
@@ -799,6 +891,7 @@
       };
       lastKnownTimerRunning = true;
       lastSoundedSecond = null;
+      startBgmTenseLoop();
       persistState();
     }
 
@@ -969,6 +1062,7 @@
       const dur = Math.max(1, Number(seconds) || DEFAULT_MATCH_DURATION_SEC);
       stopExternalTenseAudio();
       stopExternalTickAudio();
+      stopBgmTenseLoop();
       appState.timer = {
         durationSec: dur,
         remainingSec: dur,
@@ -1017,12 +1111,14 @@
         finished: false
       };
       lastSoundedSecond = null;
+      startBgmTenseLoop();
       persistState();
     }
 
     function pauseMatchTimer() {
       stopExternalTenseAudio();
       stopExternalTickAudio();
+      stopBgmTenseLoop();
       const configuredDur = getConfiguredDurationSec();
       const rem = getCurrentRemainingSeconds();
       appState.timer = {
@@ -1038,6 +1134,7 @@
     function resetMatchTimer() {
       stopExternalTenseAudio();
       stopExternalTickAudio();
+      stopBgmTenseLoop();
       const configuredDur = getConfiguredDurationSec();
       appState.timer = {
         durationSec: configuredDur,
@@ -1101,8 +1198,12 @@
       if (hostDisp) hostDisp.textContent = formatted;
       if (judgeDisp) judgeDisp.textContent = formatted;
 
-      if (!t.isRunning && isTenseLoopPlaying) {
-        stopExternalTenseAudio();
+      if (!t.isRunning) {
+        if (isTenseLoopPlaying) stopExternalTenseAudio();
+        if (isBgmTensePlaying && !isTestingBgmTense) stopBgmTenseLoop();
+      } else if (rem > 0 && !isBgmTensePlaying) {
+        // Pastikan Sound Tegang terus berjalan paralel & loop selama pertandingan aktif
+        startBgmTenseLoop();
       }
 
       // Styling visual timer berdasarkan kondisi waktu
@@ -1132,13 +1233,14 @@
         if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center";
       }
 
-      // 1. Bunyi gong besar saat waktu mulai berjalan
+      // 1. Bunyi gong besar saat waktu mulai berjalan (paralel dengan Sound Tegang)
       if (t.isRunning && !lastKnownTimerRunning && rem > 0) {
         playLoudGong();
+        startBgmTenseLoop();
       }
       lastKnownTimerRunning = !!t.isRunning;
 
-      // Pemicu bunyi tiap detik saat timer aktif berjalan
+      // Pemicu bunyi tiap detik saat timer aktif berjalan (paralel dengan Sound Tegang)
       if (t.isRunning && lastSoundedSecond !== rem) {
         const isFirstStartSecond = (lastSoundedSecond === null);
         lastSoundedSecond = rem;
@@ -1147,9 +1249,10 @@
         } else if (rem >= 1 && rem <= 10) {
           playTenseCountdownSound(rem);
         } else if (rem === 0) {
-          // 3. Hentikan alarm 10 detik terakhir & bunyikan gong besar saat waktu habis (00:00)
+          // 3. Hentikan Sound Tegang & alarm 10 detik terakhir, lalu bunyikan gong besar saat waktu habis (00:00)
           stopExternalTenseAudio();
           stopExternalTickAudio();
+          stopBgmTenseLoop();
           playLoudGong();
           lastKnownTimerRunning = false;
           appState.timer = {
@@ -1366,6 +1469,7 @@
       if (newStatus === "live") {
         stopExternalTenseAudio();
         stopExternalTickAudio();
+        stopBgmTenseLoop();
         Object.keys(appState.matches).forEach(k => {
           if (appState.matches[k].status === "live") {
             appState.matches[k].status = "pending";
@@ -1437,6 +1541,7 @@
       if (confirm("Reset seluruh data turnamen ke awal?")) {
         stopExternalTenseAudio();
         stopExternalTickAudio();
+        stopBgmTenseLoop();
         appState = createDefaultState();
         lastSoundedSecond = null;
         lastKnownTimerRunning = false;
