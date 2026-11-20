@@ -14,11 +14,36 @@
     .font-mono-timer { font-family: 'JetBrains Mono', monospace; }
     .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(148, 163, 184, 0.15); }
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+
     @keyframes pulseUrgent {
       0%, 100% { transform: scale(1); }
       50% { transform: scale(1.04); }
     }
     .timer-urgent { animation: pulseUrgent 0.6s infinite; }
+
+    /* Animasi Podium 3 Juara */
+    @keyframes podiumRise {
+      0% { opacity: 0; transform: translateY(28px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes floatCrown {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-6px) rotate(3deg); }
+    }
+    @keyframes goldShimmer {
+      0% { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+    .podium-animate-1 { animation: podiumRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .podium-animate-2 { animation: podiumRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+    .podium-animate-3 { animation: podiumRise 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+    .crown-float { animation: floatCrown 2.6s ease-in-out infinite; }
+    .gold-glow-card {
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.18), rgba(234, 179, 8, 0.06), rgba(250, 204, 21, 0.22));
+      background-size: 200% auto;
+      animation: goldShimmer 4s linear infinite;
+      box-shadow: 0 0 32px rgba(250, 204, 21, 0.22);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -139,10 +164,13 @@
         <div id="pubBracketGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
       </div>
 
-      <!-- PODIUM JUARA -->
-      <div id="pub-section-podium" class="glass-card rounded-2xl p-6">
-        <h2 class="text-base font-bold text-yellow-400 uppercase tracking-wider mb-4">Podium Juara Turnamen</h2>
-        <div id="pubPodiumGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      <!-- PODIUM 3 JUARA (DENGAN ANIMASI BERTINGKAT) -->
+      <div id="pub-section-podium" class="glass-card rounded-2xl p-6 overflow-hidden">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-base font-bold text-yellow-400 uppercase tracking-wider">Podium Juara Turnamen (Top 3)</h2>
+          <span class="text-xs text-slate-400">Hasil Akhir Babak Playoff</span>
+        </div>
+        <div id="pubPodiumGrid" class="grid grid-cols-1 md:grid-cols-3 items-end gap-5 pt-4"></div>
       </div>
 
       <!-- RIWAYAT PERTANDINGAN SELESAI -->
@@ -200,7 +228,7 @@
               </div>
               <div>
                 <h3 class="text-sm font-bold uppercase tracking-wider text-amber-400">Kontrol Hitung Mundur Pertandingan</h3>
-                <p class="text-xs text-slate-400 mt-0.5">Tersinkronisasi ke Layar UMUM & JURI: gong mulai & habis, sound tegang loop paralel selama pertandingan, suara detik tiap detik, dan alarm emergency 10 detik terakhir.</p>
+                <p class="text-xs text-slate-400 mt-0.5">Sound tegang otomatis berhenti saat memasuki <b>10 detik terakhir</b> sehingga alarm emergency terdengar penuh & jelas.</p>
               </div>
             </div>
 
@@ -255,7 +283,7 @@
 
             <div class="flex items-center justify-between gap-2 bg-slate-950/80 px-3.5 py-2.5 rounded-xl border border-slate-800">
               <div class="text-xs min-w-0">
-                <div class="font-bold text-purple-300">Sound Tegang (Loop)</div>
+                <div class="font-bold text-purple-300">Sound Tegang (Mati &le;10s)</div>
                 <div id="bgmSourceStatus" class="text-[11px] text-slate-400 truncate">Default: bgm_tense.mp3 / Nonaktif</div>
               </div>
               <label class="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold cursor-pointer shrink-0">
@@ -328,7 +356,7 @@
                 <input type="checkbox" id="chk-bracket" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
               </label>
               <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
-                <span class="text-sm font-medium">Podium Juara 1 – 4</span>
+                <span class="text-sm font-medium">Podium Juara 1 – 3</span>
                 <input type="checkbox" id="chk-podium" onchange="updatePublicVisibility()" class="w-4 h-4 accent-indigo-600" />
               </label>
               <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer">
@@ -445,7 +473,7 @@
             <span id="activeJudgeBadge" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-extrabold text-sm">JURI 1</span>
             <div>
               <h2 class="text-base font-bold text-white">Panel Input Skor Pertandingan</h2>
-              <p class="text-xs text-slate-400">Hanya pertandingan berstatus <b>SEDANG BERTANDING (LIVE)</b> yang dapat dinilai.</p>
+              <p class="text-xs text-slate-400">Input 3 Target Tembak, Skor Bonus, dan Daftar Pelanggaran Penalti.</p>
             </div>
           </div>
 
@@ -500,7 +528,72 @@
     }
 
     // =========================================================================
-    // 2. SISTEM MEDIA AUDIO PARALEL (GONG, DETIK, SOUND TEGANG LOOP, EMERGENCY)
+    // 2. DEFINISI RUBRIK PENALTI (SESUAI GAMBAR 1)
+    // =========================================================================
+    const PENALTY_RULES = [
+      { key: "p_early", label: "Robot bergerak sebelum gong berbunyi", points: 5, badge: "-5" },
+      { key: "p_ram_robot", label: "Menabrak robot lain (bagi yang menabrak)", points: 5, badge: "-5" },
+      { key: "p_wall", label: "Menabrak dinding / obstacle", points: 2, badge: "-2 / kejadian" },
+      { key: "p_shift_target", label: "Menggeser sasaran", points: 2, badge: "-2 / kejadian" },
+      { key: "p_shoot_moving", label: "Menembak saat robot masih bergerak", points: 0, badge: "Tembakan tidak dinilai (0)" },
+      { key: "p_outside_zone", label: "Menembak dari luar area tembak", points: 2, badge: "-2 / kejadian" },
+      { key: "p_stuck", label: "Robot terjebak / terbalik lebih dari satu kali", points: 2, badge: "-2 sesuai ketentuan" },
+      { key: "p_enter_arena", label: "Memasuki arena tanpa meminta sinyal bantuan", points: 5, badge: "-5 / kejadian" }
+    ];
+
+    function normalizeJudgeScoreRecord(rawJd) {
+      const jd = rawJd || {};
+      const shoot1 = Number(jd.shoot1) || 0;
+      const shoot2 = Number(jd.shoot2) || 0;
+      const shoot3 = Number(jd.shoot3) || 0;
+      const totalShootA = (jd.shoot1 !== undefined || jd.shoot2 !== undefined || jd.shoot3 !== undefined)
+        ? (shoot1 + shoot2 + shoot3)
+        : (Number(jd.shootA) || 0);
+
+      const shootB1 = Number(jd.shootB1) || 0;
+      const shootB2 = Number(jd.shootB2) || 0;
+      const shootB3 = Number(jd.shootB3) || 0;
+      const totalShootB = (jd.shootB1 !== undefined || jd.shootB2 !== undefined || jd.shootB3 !== undefined)
+        ? (shootB1 + shootB2 + shootB3)
+        : (Number(jd.shootB) || 0);
+
+      const bonusA = Number(jd.bonusA) || 0;
+      const bonusB = Number(jd.bonusB) || 0;
+
+      const penDetailsA = jd.penDetailsA || {};
+      const penDetailsB = jd.penDetailsB || {};
+
+      let calcPenA = 0;
+      let calcPenB = 0;
+      let hasPenDetailsA = false;
+      let hasPenDetailsB = false;
+
+      PENALTY_RULES.forEach(rule => {
+        if (penDetailsA[rule.key] !== undefined) hasPenDetailsA = true;
+        if (penDetailsB[rule.key] !== undefined) hasPenDetailsB = true;
+        calcPenA += (Number(penDetailsA[rule.key]) || 0) * rule.points;
+        calcPenB += (Number(penDetailsB[rule.key]) || 0) * rule.points;
+      });
+
+      const totalPenA = hasPenDetailsA ? calcPenA : (Number(jd.penA) || 0);
+      const totalPenB = hasPenDetailsB ? calcPenB : (Number(jd.penB) || 0);
+
+      const totalA = totalShootA + bonusA - totalPenA;
+      const totalB = totalShootB + bonusB - totalPenB;
+
+      return {
+        shoot1, shoot2, shoot3, totalShootA,
+        shootB1, shootB2, shootB3, totalShootB,
+        bonusA, bonusB,
+        penDetailsA, penDetailsB,
+        totalPenA, totalPenB,
+        totalA, totalB,
+        locked: !!jd.locked
+      };
+    }
+
+    // =========================================================================
+    // 3. SISTEM MEDIA AUDIO PARALEL (GONG, DETIK, SOUND TEGANG MATI <=10s, EMERGENCY)
     // =========================================================================
     const GONG_AUDIO_SRC = "gong.mp3";
     const TICK_AUDIO_SRC = "tick.mp3";
@@ -519,6 +612,7 @@
 
     const externalTenseAudio = new Audio(TENSE_AUDIO_SRC);
     externalTenseAudio.preload = "auto";
+    externalTenseAudio.volume = 1.0;
 
     let customGongObjectUrl = null;
     let customTickObjectUrl = null;
@@ -560,14 +654,14 @@
         externalBgmTenseAudio.load();
         const st = document.getElementById("bgmSourceStatus");
         if (st) st.textContent = `Aktif: ${file.name}`;
-        // Jika timer sedang berjalan saat file diupload, langsung putar paralel
-        if (appState?.timer?.isRunning && !isAudioMuted) {
+        if (appState?.timer?.isRunning && getCurrentRemainingSeconds() > 10 && !isAudioMuted) {
           startBgmTenseLoop();
         }
       } else if (type === "tense") {
         if (customTenseObjectUrl) URL.revokeObjectURL(customTenseObjectUrl);
         customTenseObjectUrl = objUrl;
         externalTenseAudio.src = objUrl;
+        externalTenseAudio.volume = 1.0;
         externalTenseAudio.load();
         const st = document.getElementById("tenseSourceStatus");
         if (st) st.textContent = `Aktif: ${file.name}`;
@@ -594,7 +688,7 @@
     }
     document.addEventListener("click", unlockAllAudio, { once: false });
 
-    // Kontrol Sound Tegang Background (Berjalan Paralel & Loop Selama Pertandingan)
+    // Sound Tegang berjalan selama waktu > 10 detik, dan MATI otomatis saat memasuki <= 10 detik terakhir
     function startBgmTenseLoop() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -602,6 +696,7 @@
 
       try {
         externalBgmTenseAudio.loop = true;
+        externalBgmTenseAudio.volume = 0.85;
         const playPromise = externalBgmTenseAudio.play();
         if (playPromise !== undefined) {
           playPromise
@@ -636,6 +731,7 @@
       } else {
         externalBgmTenseAudio.currentTime = 0;
         externalBgmTenseAudio.loop = true;
+        externalBgmTenseAudio.volume = 0.85;
         externalBgmTenseAudio.play()
           .then(() => {
             isBgmTensePlaying = true;
@@ -676,7 +772,7 @@
         stopExternalTenseAudio();
         stopExternalTickAudio();
         stopBgmTenseLoop();
-      } else if (appState?.timer?.isRunning && getCurrentRemainingSeconds() > 0) {
+      } else if (appState?.timer?.isRunning && getCurrentRemainingSeconds() > 10) {
         startBgmTenseLoop();
       }
 
@@ -690,13 +786,14 @@
       }
     }
 
-    // 1. Bunyi Gong Besar (Paralel)
+    // 1. Bunyi Gong Besar
     function playLoudGong() {
       if (isAudioMuted) return;
       ensureAudioContext();
 
       try {
         externalGongAudio.currentTime = 0;
+        externalGongAudio.volume = 1.0;
         const playPromise = externalGongAudio.play();
         if (playPromise !== undefined) {
           playPromise.catch(() => {
@@ -755,7 +852,7 @@
       lfo.stop(now + duration);
     }
 
-    // 2. Bunyi Detik Pertandingan (Paralel)
+    // 2. Bunyi Detik Pertandingan
     function playNormalTick() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -788,11 +885,12 @@
       osc.stop(now + 0.065);
     }
 
-    // 3. Bunyi Emergency 10 Detik Terakhir (Paralel dengan Sound Tegang)
+    // 3. Bunyi Emergency 10 Detik Terakhir (Sound Tegang otomatis dimatikan agar Emergency dominan)
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
       stopExternalTickAudio();
+      stopBgmTenseLoop(); // Matikan sound tegang saat memasuki 10 detik terakhir
 
       if (isTenseLoopPlaying && !externalTenseAudio.paused) {
         return;
@@ -802,6 +900,7 @@
         if (secLeft === 10 || !isTenseLoopPlaying) {
           externalTenseAudio.currentTime = 0;
           externalTenseAudio.loop = true;
+          externalTenseAudio.volume = 1.0;
           const playPromise = externalTenseAudio.play();
           if (playPromise !== undefined) {
             playPromise
@@ -851,7 +950,7 @@
         osc.frequency.setValueAtTime(p.f2, now + p.t + p.dur * 0.5);
 
         gain.gain.setValueAtTime(0.001, now + p.t);
-        gain.gain.linearRampToValueAtTime(0.42, now + p.t + 0.015);
+        gain.gain.linearRampToValueAtTime(0.55, now + p.t + 0.015);
         gain.gain.exponentialRampToValueAtTime(0.001, now + p.t + p.dur);
 
         osc.connect(filter);
@@ -875,7 +974,7 @@
       playNormalTick();
     }
 
-    // Tombol Tes 10 Detik (Simulasi langsung hitung mundur 00:10 -> 00:00 + Gong Habis + Sound Tegang Paralel)
+    // Tombol Tes 10 Detik (Hanya suara Emergency yang terdengar lalu Gong saat 00:00)
     function test10SecondsCountdown() {
       unlockAllAudio();
       stopExternalTenseAudio();
@@ -891,15 +990,14 @@
       };
       lastKnownTimerRunning = true;
       lastSoundedSecond = null;
-      startBgmTenseLoop();
       persistState();
     }
 
     // =========================================================================
-    // 3. STATE, TIMER DINAMIS & AUTHENTICATION
+    // 4. STATE, TIMER DINAMIS & AUTHENTICATION
     // =========================================================================
     const DEFAULT_MATCH_DURATION_SEC = 300;
-    const STORAGE_KEY = "turnamen_6tim_v4_state";
+    const STORAGE_KEY = "turnamen_6tim_v5_state";
     const bc = new BroadcastChannel("turnamen_6tim_channel");
 
     let sessionAuth = {
@@ -1039,7 +1137,7 @@
     }
 
     // =========================================================================
-    // 4. LOGIKA COUNTDOWN TIMER DINAMIS REAL-TIME & AUDIO TRIGGER
+    // 5. LOGIKA COUNTDOWN TIMER DINAMIS REAL-TIME & AUDIO TRIGGER
     // =========================================================================
     function getCurrentRemainingSeconds() {
       const configuredDur = getConfiguredDurationSec();
@@ -1111,7 +1209,11 @@
         finished: false
       };
       lastSoundedSecond = null;
-      startBgmTenseLoop();
+      if (rem > 10) {
+        startBgmTenseLoop();
+      } else {
+        stopBgmTenseLoop();
+      }
       persistState();
     }
 
@@ -1198,12 +1300,16 @@
       if (hostDisp) hostDisp.textContent = formatted;
       if (judgeDisp) judgeDisp.textContent = formatted;
 
+      // Kontrol Sound Tegang: Hidup saat t.isRunning & rem > 10, MATI otomatis saat rem <= 10 atau tidak running
       if (!t.isRunning) {
         if (isTenseLoopPlaying) stopExternalTenseAudio();
         if (isBgmTensePlaying && !isTestingBgmTense) stopBgmTenseLoop();
-      } else if (rem > 0 && !isBgmTensePlaying) {
-        // Pastikan Sound Tegang terus berjalan paralel & loop selama pertandingan aktif
-        startBgmTenseLoop();
+      } else {
+        if (rem > 10) {
+          if (!isBgmTensePlaying) startBgmTenseLoop();
+        } else {
+          if (isBgmTensePlaying && !isTestingBgmTense) stopBgmTenseLoop();
+        }
       }
 
       // Styling visual timer berdasarkan kondisi waktu
@@ -1233,14 +1339,14 @@
         if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center";
       }
 
-      // 1. Bunyi gong besar saat waktu mulai berjalan (paralel dengan Sound Tegang)
+      // Bunyi gong besar saat waktu mulai berjalan
       if (t.isRunning && !lastKnownTimerRunning && rem > 0) {
         playLoudGong();
-        startBgmTenseLoop();
+        if (rem > 10) startBgmTenseLoop();
       }
       lastKnownTimerRunning = !!t.isRunning;
 
-      // Pemicu bunyi tiap detik saat timer aktif berjalan (paralel dengan Sound Tegang)
+      // Pemicu bunyi tiap detik saat timer aktif berjalan
       if (t.isRunning && lastSoundedSecond !== rem) {
         const isFirstStartSecond = (lastSoundedSecond === null);
         lastSoundedSecond = rem;
@@ -1249,7 +1355,6 @@
         } else if (rem >= 1 && rem <= 10) {
           playTenseCountdownSound(rem);
         } else if (rem === 0) {
-          // 3. Hentikan Sound Tegang & alarm 10 detik terakhir, lalu bunyikan gong besar saat waktu habis (00:00)
           stopExternalTenseAudio();
           stopExternalTickAudio();
           stopBgmTenseLoop();
@@ -1272,7 +1377,7 @@
     setInterval(updateTimerDisplaysAndAudio, 200);
 
     // =========================================================================
-    // 5. PERHITUNGAN SKOR RATA-RATA JURI & KLASEMEN
+    // 6. PERHITUNGAN SKOR RATA-RATA JURI & KLASEMEN
     // =========================================================================
     function getMatchAverageScores(match) {
       const count = Number(appState.judgeCount) || 2;
@@ -1280,13 +1385,11 @@
       const judgesObj = match.judges || {};
 
       for (let j = 1; j <= count; j++) {
-        const jd = judgesObj[j] || { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0 };
-        const totA = (Number(jd.shootA) || 0) + (Number(jd.bonusA) || 0) - (Number(jd.penA) || 0);
-        const totB = (Number(jd.shootB) || 0) + (Number(jd.bonusB) || 0) - (Number(jd.penB) || 0);
-        sumA += totA;
-        sumB += totB;
-        penA += (Number(jd.penA) || 0);
-        penB += (Number(jd.penB) || 0);
+        const norm = normalizeJudgeScoreRecord(judgesObj[j]);
+        sumA += norm.totalA;
+        sumB += norm.totalB;
+        penA += norm.totalPenA;
+        penB += norm.totalPenB;
       }
 
       const avgA = Number((sumA / count).toFixed(2));
@@ -1337,7 +1440,7 @@
     }
 
     // =========================================================================
-    // 6. NAVIGASI ROLE & AUTENTIKASI LOGIN
+    // 7. NAVIGASI ROLE & AUTENTIKASI LOGIN
     // =========================================================================
     function switchRole(role) {
       sessionAuth.role = role;
@@ -1402,7 +1505,7 @@
     }
 
     // =========================================================================
-    // 7. AKSI HOST (CHECKLIST, JURI, TIM, STATUS MATCH, BRACKET)
+    // 8. AKSI HOST (CHECKLIST, JURI, TIM, STATUS MATCH, BRACKET)
     // =========================================================================
     function updatePublicVisibility() {
       appState.publicVisibility = {
@@ -1550,36 +1653,60 @@
     }
 
     // =========================================================================
-    // 8. AKSI JURI (INPUT SKOR LAGA LIVE)
+    // 9. AKSI JURI (INPUT 3 TARGET TEMBAK, 1 BONUS, & 8 PELANGGARAN PENALTI)
     // =========================================================================
-    function updateJudgeScore(matchId, jNum, field, deltaOrVal, isDirect = false) {
+    function ensureJudgeRecordInitialized(matchId, jNum) {
       const match = appState.matches[matchId];
-      if (!match) return;
+      if (!match) return null;
       if (!match.judges) match.judges = {};
       if (!match.judges[jNum]) {
-        match.judges[jNum] = { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
+        match.judges[jNum] = {
+          shoot1: 0, shoot2: 0, shoot3: 0,
+          shootB1: 0, shootB2: 0, shootB3: 0,
+          bonusA: 0, bonusB: 0,
+          penDetailsA: {},
+          penDetailsB: {},
+          locked: false
+        };
       }
-      if (match.judges[jNum].locked) return;
+      if (!match.judges[jNum].penDetailsA) match.judges[jNum].penDetailsA = {};
+      if (!match.judges[jNum].penDetailsB) match.judges[jNum].penDetailsB = {};
+      return match.judges[jNum];
+    }
 
-      const cur = Number(match.judges[jNum][field]) || 0;
-      const nextVal = isDirect ? (Number(deltaOrVal) || 0) : Math.max(0, cur + deltaOrVal);
-      match.judges[jNum][field] = nextVal;
+    function updateJudgeScore(matchId, jNum, field, deltaOrVal, isDirect = false) {
+      const rec = ensureJudgeRecordInitialized(matchId, jNum);
+      if (!rec || rec.locked) return;
+
+      const cur = Number(rec[field]) || 0;
+      const nextVal = isDirect ? Math.max(0, Number(deltaOrVal) || 0) : Math.max(0, cur + deltaOrVal);
+      rec[field] = nextVal;
+      persistState();
+    }
+
+    function updateJudgePenaltyCount(matchId, jNum, side, ruleKey, deltaOrVal, isDirect = false) {
+      const rec = ensureJudgeRecordInitialized(matchId, jNum);
+      if (!rec || rec.locked) return;
+
+      const targetObj = side === "A" ? rec.penDetailsA : rec.penDetailsB;
+      const curCount = Number(targetObj[ruleKey]) || 0;
+      const nextCount = isDirect
+        ? Math.max(0, parseInt(deltaOrVal, 10) || 0)
+        : Math.max(0, curCount + deltaOrVal);
+
+      targetObj[ruleKey] = nextCount;
       persistState();
     }
 
     function lockJudgeSubmission(matchId, jNum) {
-      const match = appState.matches[matchId];
-      if (!match) return;
-      if (!match.judges) match.judges = {};
-      if (!match.judges[jNum]) {
-        match.judges[jNum] = { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
-      }
-      match.judges[jNum].locked = true;
+      const rec = ensureJudgeRecordInitialized(matchId, jNum);
+      if (!rec) return;
+      rec.locked = true;
       persistState();
     }
 
     // =========================================================================
-    // 9. RENDERING SEMUA TAMPILAN
+    // 10. RENDERING SEMUA TAMPILAN
     // =========================================================================
     function getTeamName(idx) {
       if (idx === null || idx === undefined) return "Menunggu Hasil";
@@ -1682,27 +1809,53 @@
         `;
       }).join("");
 
-      // Podium Juara 1-4
-      const p4 = appState.matches["P4"];
+      // Podium 3 Juara (Juara 2 Kiri, Juara 1 Tengah Tertinggi + Animasi, Juara 3 Kanan)
       const p5 = appState.matches["P5"];
       const p6 = appState.matches["P6"];
       const j1 = p6.status === "completed" ? getTeamName(getMatchWinnerLoser(p6).winner) : "Menunggu Grand Final";
       const j2 = p6.status === "completed" ? getTeamName(getMatchWinnerLoser(p6).loser) : "Menunggu Grand Final";
       const j3 = p5.status === "completed" ? getTeamName(getMatchWinnerLoser(p5).loser) : "Menunggu Lower Final";
-      const j4 = p4.status === "completed" ? getTeamName(getMatchWinnerLoser(p4).loser) : "Menunggu Lower Semi";
 
-      const podiumData = [
-        { rank: "JUARA 1", name: j1, color: "border-yellow-400 text-yellow-400" },
-        { rank: "JUARA 2", name: j2, color: "border-slate-300 text-slate-300" },
-        { rank: "JUARA 3", name: j3, color: "border-amber-600 text-amber-500" },
-        { rank: "JUARA 4", name: j4, color: "border-slate-700 text-slate-400" }
-      ];
-      document.getElementById("pubPodiumGrid").innerHTML = podiumData.map(p => `
-        <div class="p-4 rounded-xl bg-slate-900/90 border ${p.color}">
-          <div class="text-xs font-extrabold tracking-wider">${p.rank}</div>
-          <div class="text-lg font-black text-white mt-1">${p.name}</div>
+      document.getElementById("pubPodiumGrid").innerHTML = `
+        <!-- JUARA 2 (SILVER - KIRI) -->
+        <div class="podium-animate-2 order-2 md:order-1 flex flex-col justify-end">
+          <div class="p-5 rounded-2xl bg-gradient-to-b from-slate-800/90 to-slate-950 border-2 border-slate-300/60 text-center shadow-xl md:min-h-[175px] flex flex-col justify-between transition-transform duration-300 hover:-translate-y-1.5">
+            <div>
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-slate-300/20 text-slate-200 font-black text-base border border-slate-300/50 mb-2">
+                2
+              </div>
+              <div class="text-xs font-extrabold tracking-widest text-slate-300 uppercase">JUARA 2 • SILVER</div>
+            </div>
+            <div class="text-xl font-black text-white mt-3 break-words">${j2}</div>
+          </div>
         </div>
-      `).join("");
+
+        <!-- JUARA 1 (GOLD - TENGAH PALING TINGGI) -->
+        <div class="podium-animate-1 order-1 md:order-2 flex flex-col justify-end">
+          <div class="gold-glow-card p-6 rounded-2xl border-2 border-yellow-400 text-center md:min-h-[225px] flex flex-col justify-between transition-transform duration-300 hover:-translate-y-2">
+            <div>
+              <div class="crown-float inline-flex items-center justify-center w-12 h-12 rounded-full bg-yellow-400/25 text-yellow-300 font-black text-xl border-2 border-yellow-400 mb-2 shadow-lg shadow-yellow-500/30">
+                ★
+              </div>
+              <div class="text-xs font-black tracking-widest text-yellow-300 uppercase">JUARA 1 • CHAMPION</div>
+            </div>
+            <div class="text-2xl md:text-3xl font-black text-white mt-3 drop-shadow break-words">${j1}</div>
+          </div>
+        </div>
+
+        <!-- JUARA 3 (BRONZE - KANAN) -->
+        <div class="podium-animate-3 order-3 md:order-3 flex flex-col justify-end">
+          <div class="p-5 rounded-2xl bg-gradient-to-b from-amber-950/60 to-slate-950 border-2 border-amber-600/70 text-center shadow-xl md:min-h-[150px] flex flex-col justify-between transition-transform duration-300 hover:-translate-y-1.5">
+            <div>
+              <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-amber-600/20 text-amber-400 font-black text-base border border-amber-500/50 mb-2">
+                3
+              </div>
+              <div class="text-xs font-extrabold tracking-widest text-amber-400 uppercase">JUARA 3 • BRONZE</div>
+            </div>
+            <div class="text-lg font-black text-white mt-3 break-words">${j3}</div>
+          </div>
+        </div>
+      `;
 
       // Riwayat Pertandingan Selesai
       const completed = Object.values(appState.matches).filter(m => m.status === "completed");
@@ -1774,15 +1927,13 @@
 
         let judgeDetailHtml = "";
         for (let j = 1; j <= count; j++) {
-          const jd = (m.judges && m.judges[j]) || { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
-          const totA = (Number(jd.shootA) || 0) + (Number(jd.bonusA) || 0) - (Number(jd.penA) || 0);
-          const totB = (Number(jd.shootB) || 0) + (Number(jd.bonusB) || 0) - (Number(jd.penB) || 0);
+          const norm = normalizeJudgeScoreRecord(m.judges && m.judges[j]);
           judgeDetailHtml += `
             <div class="flex flex-wrap items-center justify-between gap-2 text-xs bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
               <span class="font-bold text-slate-300">Juri ${j}:</span>
-              <span>Tim A: <b>${totA}</b> (${jd.shootA}+${jd.bonusA}-${jd.penA})</span>
-              <span>Tim B: <b>${totB}</b> (${jd.shootB}+${jd.bonusB}-${jd.penB})</span>
-              ${jd.locked
+              <span>Tim A: <b>${norm.totalA}</b> (T:${norm.totalShootA} + B:${norm.bonusA} - P:${norm.totalPenA})</span>
+              <span>Tim B: <b>${norm.totalB}</b> (T:${norm.totalShootB} + B:${norm.bonusB} - P:${norm.totalPenB})</span>
+              ${norm.locked
                 ? `<button onclick="unlockJudgeForMatch('${id}', ${j})" class="text-amber-400 underline">Buka Kunci</button>`
                 : `<span class="text-slate-500">Terbuka</span>`}
             </div>
@@ -1847,58 +1998,146 @@
         return;
       }
 
-      const jd = (liveMatch.judges && liveMatch.judges[jNum]) || { shootA: 0, bonusA: 0, penA: 0, shootB: 0, bonusB: 0, penB: 0, locked: false };
-      const totA = (Number(jd.shootA) || 0) + (Number(jd.bonusA) || 0) - (Number(jd.penA) || 0);
-      const totB = (Number(jd.shootB) || 0) + (Number(jd.bonusB) || 0) - (Number(jd.penB) || 0);
+      const norm = normalizeJudgeScoreRecord(liveMatch.judges && liveMatch.judges[jNum]);
 
-      const renderTeamCard = (side, teamIdx, shoot, bonus, pen, total, accent) => `
-        <div class="glass-card rounded-2xl p-5 border-${accent}-500/30 space-y-4">
-          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-            <div>
-              <span class="text-xs font-bold uppercase text-${accent}-400">TIM ${side}</span>
-              <h4 class="text-xl font-black text-white">${getTeamName(teamIdx)}</h4>
+      const renderTeamCard = (side, teamIdx, accent) => {
+        const isA = side === "A";
+        const t1Key = isA ? "shoot1" : "shootB1";
+        const t2Key = isA ? "shoot2" : "shootB2";
+        const t3Key = isA ? "shoot3" : "shootB3";
+        const bonusKey = isA ? "bonusA" : "bonusB";
+
+        const t1Val = isA ? norm.shoot1 : norm.shootB1;
+        const t2Val = isA ? norm.shoot2 : norm.shootB2;
+        const t3Val = isA ? norm.shoot3 : norm.shootB3;
+        const totalShoot = isA ? norm.totalShootA : norm.totalShootB;
+        const bonusVal = isA ? norm.bonusA : norm.bonusB;
+        const penDetails = isA ? norm.penDetailsA : norm.penDetailsB;
+        const totalPen = isA ? norm.totalPenA : norm.totalPenB;
+        const grandTotal = isA ? norm.totalA : norm.totalB;
+
+        const targetInputsHtml = [
+          { key: t1Key, label: "Target 1", val: t1Val },
+          { key: t2Key, label: "Target 2", val: t2Val },
+          { key: t3Key, label: "Target 3", val: t3Val }
+        ].map(tgt => `
+          <div class="bg-slate-950/90 p-2.5 rounded-xl border border-slate-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-300">${tgt.label}</span>
+              <span class="text-[11px] font-semibold text-${accent}-400">Poin</span>
             </div>
-            <div class="text-right">
-              <div class="text-[11px] text-slate-400">Total Skor Juri ${jNum}</div>
-              <div class="text-3xl font-black text-${accent}-400">${total}</div>
+            <div class="flex items-center justify-between gap-1">
+              <button ${norm.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${tgt.key}', -5)"
+                class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-xs text-white disabled:opacity-40">-5</button>
+              <input ${norm.locked ? 'disabled' : ''} type="number" min="0" value="${tgt.val}"
+                onchange="updateJudgeScore('${liveMatch.id}', ${jNum}, '${tgt.key}', this.value, true)"
+                class="w-16 text-center py-1 rounded-lg bg-slate-900 border border-slate-700 font-bold text-sm text-white disabled:opacity-50" />
+              <button ${norm.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${tgt.key}', 5)"
+                class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-xs text-white disabled:opacity-40">+5</button>
             </div>
           </div>
+        `).join("");
 
-          ${[
-            { key: `shoot${side}`, label: "Skor Tembak (+)", val: shoot },
-            { key: `bonus${side}`, label: "Skor Bonus (+)", val: bonus },
-            { key: `pen${side}`, label: "Skor Penalti (-)", val: pen }
-          ].map(item => `
-            <div class="flex items-center justify-between gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
-              <span class="text-sm font-semibold text-slate-300">${item.label}</span>
-              <div class="flex items-center gap-2">
-                <button ${jd.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${item.key}', -5)"
-                  class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-white disabled:opacity-40">-5</button>
-                <input ${jd.locked ? 'disabled' : ''} type="number" value="${item.val}"
-                  onchange="updateJudgeScore('${liveMatch.id}', ${jNum}, '${item.key}', this.value, true)"
-                  class="w-20 text-center py-1.5 rounded-lg bg-slate-900 border border-slate-700 font-bold text-white disabled:opacity-50" />
-                <button ${jd.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${item.key}', 5)"
-                  class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-white disabled:opacity-40">+5</button>
+        const penaltyRowsHtml = PENALTY_RULES.map(rule => {
+          const jml = Number(penDetails[rule.key]) || 0;
+          const poinRule = jml * rule.points;
+          return `
+            <div class="flex items-center justify-between gap-2 bg-slate-950/90 px-3 py-2 rounded-xl border border-slate-800/90 text-xs">
+              <div class="min-w-0 flex-1 pr-2">
+                <div class="font-semibold text-slate-200 leading-snug">${rule.label}</div>
+                <div class="text-[11px] text-rose-400 font-medium">${rule.badge}</div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button ${norm.locked ? 'disabled' : ''} onclick="updateJudgePenaltyCount('${liveMatch.id}', ${jNum}, '${side}', '${rule.key}', -1)"
+                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 font-extrabold text-white disabled:opacity-40">-</button>
+                <div class="w-8 text-center font-mono-timer font-bold text-sm text-white">${jml}x</div>
+                <button ${norm.locked ? 'disabled' : ''} onclick="updateJudgePenaltyCount('${liveMatch.id}', ${jNum}, '${side}', '${rule.key}', 1)"
+                  class="w-7 h-7 rounded-lg bg-rose-900/80 hover:bg-rose-800 border border-rose-700/60 font-extrabold text-rose-100 disabled:opacity-40">+</button>
+                <div class="w-12 text-right font-mono-timer font-extrabold ${poinRule > 0 ? 'text-rose-400' : 'text-slate-500'}">
+                  ${poinRule > 0 ? `-${poinRule}` : '0'}
+                </div>
               </div>
             </div>
-          `).join("")}
-        </div>
-      `;
+          `;
+        }).join("");
+
+        return `
+          <div class="glass-card rounded-2xl p-5 border-${accent}-500/30 space-y-5">
+            <!-- HEADER TIM & GRAND TOTAL -->
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div>
+                <span class="text-xs font-bold uppercase text-${accent}-400">TIM ${side}</span>
+                <h4 class="text-xl font-black text-white">${getTeamName(teamIdx)}</h4>
+              </div>
+              <div class="text-right">
+                <div class="text-[11px] text-slate-400">Nilai Akhir Juri ${jNum}</div>
+                <div class="text-3xl md:text-4xl font-black text-${accent}-400">${grandTotal}</div>
+              </div>
+            </div>
+
+            <!-- A. SKOR TEMBAK (3 TARGET DIJUMLAHKAN) -->
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-300">A. Skor Tembak (3 Target)</span>
+                <span class="px-2.5 py-0.5 rounded-md bg-indigo-950 border border-indigo-700/50 text-xs font-extrabold text-indigo-300">
+                  Total Tembak: +${totalShoot}
+                </span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                ${targetInputsHtml}
+              </div>
+            </div>
+
+            <!-- B. SKOR BONUS (1 INPUT) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-300">B. Skor Bonus</span>
+                <span class="text-xs font-bold text-emerald-400">+${bonusVal}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                <span class="text-sm font-semibold text-slate-300">Poin Bonus</span>
+                <div class="flex items-center gap-2">
+                  <button ${norm.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${bonusKey}', -5)"
+                    class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-white disabled:opacity-40">-5</button>
+                  <input ${norm.locked ? 'disabled' : ''} type="number" min="0" value="${bonusVal}"
+                    onchange="updateJudgeScore('${liveMatch.id}', ${jNum}, '${bonusKey}', this.value, true)"
+                    class="w-20 text-center py-1.5 rounded-lg bg-slate-900 border border-slate-700 font-bold text-white disabled:opacity-50" />
+                  <button ${norm.locked ? 'disabled' : ''} onclick="updateJudgeScore('${liveMatch.id}', ${jNum}, '${bonusKey}', 5)"
+                    class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 font-bold text-white disabled:opacity-40">+5</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- C. PENALTI (RINCIAN PELANGGARAN SESUAI RUBRIK) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-rose-400">C. Penalti (Pelanggaran)</span>
+                <span class="px-2.5 py-0.5 rounded-md bg-rose-950 border border-rose-700/50 text-xs font-extrabold text-rose-300">
+                  Subtotal C: -${totalPen}
+                </span>
+              </div>
+              <div class="space-y-1.5">
+                ${penaltyRowsHtml}
+              </div>
+            </div>
+          </div>
+        `;
+      };
 
       area.innerHTML = `
         <div class="space-y-5">
           <div class="flex flex-wrap items-center justify-between gap-2 bg-rose-950/30 border border-rose-500/40 px-4 py-3 rounded-xl">
             <span class="text-xs font-extrabold text-rose-400 uppercase tracking-wider">LIVE: ${liveMatch.stage} — ${liveMatch.label}</span>
-            <span class="text-xs text-slate-300">Rumus: Tembak + Bonus - Penalti</span>
+            <span class="text-xs text-slate-300">Rumus: (Target 1 + Target 2 + Target 3) + Bonus - Subtotal Penalti</span>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            ${renderTeamCard("A", liveMatch.teamA, jd.shootA, jd.bonusA, jd.penA, totA, "indigo")}
-            ${renderTeamCard("B", liveMatch.teamB, jd.shootB, jd.bonusB, jd.penB, totB, "emerald")}
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            ${renderTeamCard("A", liveMatch.teamA, "indigo")}
+            ${renderTeamCard("B", liveMatch.teamB, "emerald")}
           </div>
 
           <div class="flex justify-end">
-            ${jd.locked
+            ${norm.locked
               ? `<div class="px-5 py-3 rounded-xl bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-sm font-bold">Nilai Juri ${jNum} Sudah Dikirim & Dikunci</div>`
               : `<button onclick="lockJudgeSubmission('${liveMatch.id}', ${jNum})" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/30">
                   Kirim & Kunci Nilai Juri ${jNum}
