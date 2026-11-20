@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistem Manajemen Turnamen — Multi-Role, Firebase & Timer</title>
+  <title>Sistem Manajemen Turnamen — Room PIN Kahoot, Firebase & Timer</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Firebase App & Realtime Database SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -56,7 +56,12 @@
           TM
         </div>
         <div>
-          <h1 id="headerEventTitle" class="font-extrabold text-base md:text-lg tracking-tight text-white">TURNAMEN 6 TIM</h1>
+          <div class="flex items-center gap-2">
+            <h1 id="headerEventTitle" class="font-extrabold text-base md:text-lg tracking-tight text-white">TURNAMEN 6 TIM</h1>
+            <span id="headerPinBadge" class="hidden px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono-timer text-xs font-extrabold">
+              PIN: ------
+            </span>
+          </div>
           <div class="flex items-center gap-2 text-xs text-slate-400">
             <span id="connStatusDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
             <span id="connStatusText">Menghubungkan ke Firebase...</span>
@@ -92,128 +97,181 @@
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
 
     <!-- ========================================================= -->
-    <!-- 1. LAYAR UMUM (PROYEKTOR / PENONTON)                      -->
+    <!-- 1. LAYAR UMUM (JOIN PIN + PROYEKTOR / PENONTON)           -->
     <!-- ========================================================= -->
     <section id="view-public" class="space-y-6">
-      <!-- LIVE MATCH SPOTLIGHT + COUNTDOWN TIMER -->
-      <div id="pub-section-live" class="glass-card rounded-2xl p-6 border-indigo-500/30 shadow-xl">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-600 text-white animate-pulse">SEDANG BERTANDING • LIVE</span>
-            <span id="pubLiveStageLabel" class="text-xs font-semibold uppercase tracking-wider text-indigo-400">TAHAP 1 - GRUP A</span>
-          </div>
-          <span class="text-xs text-slate-400">Menampilkan Nilai Akhir (Rata-Rata Juri)</span>
+      <!-- FORM MASUK PIN LAYAR UMUM (ALA KAHOOT) -->
+      <div id="publicPinGateBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl text-center border-indigo-500/30">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 font-black text-2xl mb-4">
+          #
         </div>
-
-        <!-- TIMER BESAR LAYAR UMUM -->
-        <div class="flex justify-center mb-6">
-          <div id="pubTimerBox" class="px-8 py-4 rounded-2xl bg-slate-950/90 border-2 border-indigo-500/40 text-center shadow-inner">
-            <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">SISA WAKTU PERTANDINGAN</div>
-            <div id="pubTimerDisplay" class="font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-white">05:00</div>
-            <div id="pubTimerStatusText" class="text-xs font-semibold text-indigo-400 mt-1">SIAP DIMULAI</div>
-          </div>
-        </div>
-
-        <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-2">
-          <!-- Rendered by JS -->
-        </div>
+        <h2 class="text-2xl font-black text-white mb-1">Layar Penonton / Umum</h2>
+        <p class="text-xs text-slate-400 mb-6">Masukkan <b>PIN Turnamen</b> dari Host agar skor, timer, dan klasemen tersinkronisasi otomatis.</p>
+        <form onsubmit="handlePublicJoinPin(event)" class="space-y-4">
+          <input type="text" id="publicPinInput" inputmode="numeric" maxlength="6" required autocomplete="off"
+            placeholder="PIN 6 DIGIT"
+            class="w-full px-4 py-3.5 rounded-xl bg-slate-950 border-2 border-slate-700 text-center font-mono-timer text-2xl md:text-3xl font-black tracking-[0.25em] text-amber-400 focus:outline-none focus:border-indigo-500" />
+          <p id="publicPinError" class="text-xs text-rose-400 hidden">PIN tidak ditemukan atau belum dibuat oleh Host.</p>
+          <button type="submit" id="publicJoinBtn" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-sm text-white transition shadow-lg shadow-indigo-600/30">
+            Hubungkan ke Layar Turnamen
+          </button>
+        </form>
       </div>
 
-      <!-- KLASEMEN GRUP A & B -->
-      <div id="pub-section-standings" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="glass-card rounded-2xl p-5">
-          <h2 class="text-base font-bold text-indigo-400 uppercase tracking-wider mb-3">Klasemen Grup A (Tahap 1)</h2>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase">
-                  <th class="py-2.5 px-2">Pos</th>
-                  <th class="py-2.5 px-2">Tim</th>
-                  <th class="py-2.5 px-2 text-center">Main</th>
-                  <th class="py-2.5 px-2 text-right">Nilai Akhir</th>
-                  <th class="py-2.5 px-2 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody id="pubStandingsA" class="divide-y divide-slate-800"></tbody>
-            </table>
+      <!-- KONTEN UTAMA LAYAR UMUM (SETELAH PIN TERHUBUNG) -->
+      <div id="publicDashboard" class="hidden space-y-6">
+        <!-- BAR INFO PIN AKTIF LAYAR UMUM -->
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-xl">
+          <div class="flex items-center gap-2 text-xs">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-slate-400">Tersinkronisasi dengan PIN:</span>
+            <span id="pubActivePinText" class="font-mono-timer font-extrabold text-amber-400 text-sm">------</span>
+          </div>
+          <button onclick="leavePublicRoom()" class="text-xs text-slate-400 hover:text-rose-400 font-semibold underline">
+            Ganti PIN Turnamen
+          </button>
+        </div>
+
+        <!-- LIVE MATCH SPOTLIGHT + COUNTDOWN TIMER -->
+        <div id="pub-section-live" class="glass-card rounded-2xl p-6 border-indigo-500/30 shadow-xl">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-600 text-white animate-pulse">SEDANG BERTANDING • LIVE</span>
+              <span id="pubLiveStageLabel" class="text-xs font-semibold uppercase tracking-wider text-indigo-400">TAHAP 1 - GRUP A</span>
+            </div>
+            <span class="text-xs text-slate-400">Menampilkan Nilai Akhir (Rata-Rata Juri)</span>
+          </div>
+
+          <!-- TIMER BESAR LAYAR UMUM -->
+          <div class="flex justify-center mb-6">
+            <div id="pubTimerBox" class="px-8 py-4 rounded-2xl bg-slate-950/90 border-2 border-indigo-500/40 text-center shadow-inner">
+              <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-1">SISA WAKTU PERTANDINGAN</div>
+              <div id="pubTimerDisplay" class="font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-white">05:00</div>
+              <div id="pubTimerStatusText" class="text-xs font-semibold text-indigo-400 mt-1">SIAP DIMULAI</div>
+            </div>
+          </div>
+
+          <div id="pubLiveContent" class="grid grid-cols-1 md:grid-cols-3 items-center gap-6 py-2">
+            <!-- Rendered by JS -->
           </div>
         </div>
 
-        <div class="glass-card rounded-2xl p-5">
-          <h2 class="text-base font-bold text-emerald-400 uppercase tracking-wider mb-3">Klasemen Grup B (Tahap 1)</h2>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead>
-                <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase">
-                  <th class="py-2.5 px-2">Pos</th>
-                  <th class="py-2.5 px-2">Tim</th>
-                  <th class="py-2.5 px-2 text-center">Main</th>
-                  <th class="py-2.5 px-2 text-right">Nilai Akhir</th>
-                  <th class="py-2.5 px-2 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody id="pubStandingsB" class="divide-y divide-slate-800"></tbody>
-            </table>
+        <!-- KLASEMEN GRUP A & B -->
+        <div id="pub-section-standings" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="glass-card rounded-2xl p-5">
+            <h2 class="text-base font-bold text-indigo-400 uppercase tracking-wider mb-3">Klasemen Grup A (Tahap 1)</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase">
+                    <th class="py-2.5 px-2">Pos</th>
+                    <th class="py-2.5 px-2">Tim</th>
+                    <th class="py-2.5 px-2 text-center">Main</th>
+                    <th class="py-2.5 px-2 text-right">Nilai Akhir</th>
+                    <th class="py-2.5 px-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="pubStandingsA" class="divide-y divide-slate-800"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-2xl p-5">
+            <h2 class="text-base font-bold text-emerald-400 uppercase tracking-wider mb-3">Klasemen Grup B (Tahap 1)</h2>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead>
+                  <tr class="border-b border-slate-700 text-slate-400 text-xs uppercase">
+                    <th class="py-2.5 px-2">Pos</th>
+                    <th class="py-2.5 px-2">Tim</th>
+                    <th class="py-2.5 px-2 text-center">Main</th>
+                    <th class="py-2.5 px-2 text-right">Nilai Akhir</th>
+                    <th class="py-2.5 px-2 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="pubStandingsB" class="divide-y divide-slate-800"></tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- BAGAN UPPER & LOWER BRACKET -->
-      <div id="pub-section-bracket" class="glass-card rounded-2xl p-6">
-        <h2 class="text-base font-bold text-amber-400 uppercase tracking-wider mb-4">Tahap 2 — Upper & Lower Bracket Playoff</h2>
-        <div id="pubBracketGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-      </div>
-
-      <!-- PODIUM 3 JUARA (DENGAN ANIMASI BERTINGKAT) -->
-      <div id="pub-section-podium" class="glass-card rounded-2xl p-6 overflow-hidden">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-base font-bold text-yellow-400 uppercase tracking-wider">Podium Juara Turnamen (Top 3)</h2>
-          <span class="text-xs text-slate-400">Hasil Akhir Babak Playoff</span>
+        <!-- BAGAN UPPER & LOWER BRACKET -->
+        <div id="pub-section-bracket" class="glass-card rounded-2xl p-6">
+          <h2 class="text-base font-bold text-amber-400 uppercase tracking-wider mb-4">Tahap 2 — Upper & Lower Bracket Playoff</h2>
+          <div id="pubBracketGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
         </div>
-        <div id="pubPodiumGrid" class="grid grid-cols-1 md:grid-cols-3 items-end gap-5 pt-4"></div>
-      </div>
 
-      <!-- RIWAYAT PERTANDINGAN SELESAI -->
-      <div id="pub-section-history" class="glass-card rounded-2xl p-5">
-        <h2 class="text-base font-bold text-slate-300 uppercase tracking-wider mb-3">Hasil Pertandingan Selesai (Nilai Akhir)</h2>
-        <div id="pubCompletedList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        <!-- PODIUM 3 JUARA (DENGAN ANIMASI BERTINGKAT) -->
+        <div id="pub-section-podium" class="glass-card rounded-2xl p-6 overflow-hidden">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-base font-bold text-yellow-400 uppercase tracking-wider">Podium Juara Turnamen (Top 3)</h2>
+            <span class="text-xs text-slate-400">Hasil Akhir Babak Playoff</span>
+          </div>
+          <div id="pubPodiumGrid" class="grid grid-cols-1 md:grid-cols-3 items-end gap-5 pt-4"></div>
+        </div>
+
+        <!-- RIWAYAT PERTANDINGAN SELESAI -->
+        <div id="pub-section-history" class="glass-card rounded-2xl p-5">
+          <h2 class="text-base font-bold text-slate-300 uppercase tracking-wider mb-3">Hasil Pertandingan Selesai (Nilai Akhir)</h2>
+          <div id="pubCompletedList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
       </div>
     </section>
 
     <!-- ========================================================= -->
-    <!-- 2. TAMPILAN HOST (LOGIN + KONTROL PENUH)                  -->
+    <!-- 2. TAMPILAN HOST (BUAT / BUKA PIN + KONTROL PENUH)        -->
     <!-- ========================================================= -->
     <section id="view-host" class="hidden space-y-6">
-      <!-- FORM LOGIN HOST -->
-      <div id="hostLoginBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl">
-        <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
-        <p class="text-xs text-slate-400 mb-6">Masukkan kredensial otorisasi penyelenggara untuk membuka panel kendali.</p>
+      <!-- FORM LOGIN & PILIH / BUAT PIN HOST -->
+      <div id="hostLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl space-y-5">
+        <div>
+          <h2 class="text-xl font-extrabold text-white mb-1">Akses Kontrol Host</h2>
+          <p class="text-xs text-slate-400">Buat sesi PIN baru seperti Kahoot atau lanjutkan sesi PIN yang sudah ada.</p>
+        </div>
+
         <form onsubmit="handleHostLogin(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">PIN Turnamen (Kosongkan = Buat PIN Baru Otomatis)</label>
+            <input type="text" id="hostPinInput" inputmode="numeric" maxlength="6" autocomplete="off"
+              placeholder="Contoh: 482910 (atau kosongkan)"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono-timer text-lg font-bold tracking-widest text-amber-400 focus:outline-none focus:border-indigo-500" />
+          </div>
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Host</label>
             <input type="password" id="hostPasswordInput" required autocomplete="off"
+              placeholder="Default sesi baru: admin"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-indigo-500" />
           </div>
-          <p id="hostLoginError" class="text-xs text-rose-400 hidden">Password tidak valid.</p>
-          <button type="submit" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition">
-            Masuk Panel Host
+          <p id="hostLoginError" class="text-xs text-rose-400 hidden">Password Host tidak valid untuk PIN tersebut.</p>
+          <button type="submit" id="hostLoginBtn" class="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition">
+            Buka / Buat Sesi Host
           </button>
         </form>
       </div>
 
       <!-- PANEL UTAMA HOST -->
       <div id="hostDashboard" class="hidden space-y-6">
-        <div class="flex flex-wrap items-center justify-between gap-3 glass-card p-4 rounded-2xl">
+        <!-- BANNER ROOM PIN ALA KAHOOT -->
+        <div class="glass-card rounded-2xl p-5 border-amber-500/40 bg-gradient-to-r from-indigo-950/60 via-slate-900/90 to-amber-950/30 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Panel Kendali Utama</span>
-            <h2 class="text-lg font-extrabold text-white">Manajemen Turnamen, Waktu & Penjurian</h2>
+            <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">ROOM PIN TURNAMEN AKTIF (BAGIKAN KE UMUM & JURI)</span>
+            <div class="flex flex-wrap items-center gap-3 mt-1">
+              <span id="hostActivePinDisplay" class="font-mono-timer text-4xl md:text-5xl font-black tracking-[0.2em] text-white">------</span>
+              <button onclick="copyActivePin()" id="copyPinBtn" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition">
+                Salin PIN
+              </button>
+              <button onclick="generateNewHostPinSession()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition">
+                Buat PIN Baru
+              </button>
+            </div>
           </div>
+
           <div class="flex flex-wrap gap-2">
             <button onclick="resetAllData()" class="px-3 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-semibold">
-              Reset Turnamen
+              Reset Data PIN Ini
             </button>
             <button onclick="logoutHost()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
-              Kunci Host
+              Keluar / Ganti PIN
             </button>
           </div>
         </div>
@@ -442,25 +500,38 @@
     </section>
 
     <!-- ========================================================= -->
-    <!-- 3. TAMPILAN JURI (LOGIN + TERMINAL PENILAIAN LAGA LIVE)   -->
+    <!-- 3. TAMPILAN JURI (JOIN PIN + LOGIN + TERMINAL PENILAIAN)  -->
     <!-- ========================================================= -->
     <section id="view-judge" class="hidden space-y-6">
-      <!-- FORM LOGIN JURI -->
-      <div id="judgeLoginBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl">
+      <!-- FORM LOGIN & PIN JURI -->
+      <div id="judgeLoginBox" class="max-w-md mx-auto mt-10 glass-card rounded-2xl p-8 shadow-2xl">
         <h2 class="text-xl font-extrabold text-white mb-1">Terminal Penilaian Juri</h2>
-        <p class="text-xs text-slate-400 mb-6">Pilih nomor juri Anda dan masukkan password dari Host.</p>
+        <p class="text-xs text-slate-400 mb-6">Masukkan <b>PIN Turnamen</b>, nomor juri Anda, dan password dari Host.</p>
         <form onsubmit="handleJudgeLogin(event)" class="space-y-4">
           <div>
+            <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">PIN Turnamen</label>
+            <input type="text" id="judgePinInput" inputmode="numeric" maxlength="6" required autocomplete="off"
+              placeholder="PIN 6 DIGIT"
+              class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-center font-mono-timer text-xl font-black tracking-[0.2em] text-amber-400 focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Identitas Juri</label>
-            <select id="judgeSelectNumber" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white"></select>
+            <select id="judgeSelectNumber" class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white">
+              <option value="1">Juri 1</option>
+              <option value="2">Juri 2</option>
+              <option value="3">Juri 3</option>
+              <option value="4">Juri 4</option>
+              <option value="5">Juri 5</option>
+              <option value="6">Juri 6</option>
+            </select>
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-300 uppercase mb-1.5">Password Juri</label>
             <input type="password" id="judgePasswordInput" required autocomplete="off"
               class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:outline-none focus:border-emerald-500" />
           </div>
-          <p id="judgeLoginError" class="text-xs text-rose-400 hidden">Password juri salah.</p>
-          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white transition">
+          <p id="judgeLoginError" class="text-xs text-rose-400 hidden">PIN tidak ditemukan, nomor juri tidak aktif, atau password juri salah.</p>
+          <button type="submit" id="judgeLoginBtn" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-sm text-white transition">
             Masuk Terminal Juri
           </button>
         </form>
@@ -472,7 +543,10 @@
           <div class="flex items-center gap-3">
             <span id="activeJudgeBadge" class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-extrabold text-sm">JURI 1</span>
             <div>
-              <h2 class="text-base font-bold text-white">Panel Input Skor Pertandingan</h2>
+              <div class="flex items-center gap-2">
+                <h2 class="text-base font-bold text-white">Panel Input Skor Pertandingan</h2>
+                <span id="judgeActivePinBadge" class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/40 text-amber-300 font-mono-timer text-xs font-bold">PIN: ------</span>
+              </div>
               <p class="text-xs text-slate-400">Input 3 Target Tembak, Skor Bonus, dan Daftar Pelanggaran Penalti.</p>
             </div>
           </div>
@@ -497,7 +571,7 @@
 
   <script>
     // =========================================================================
-    // 1. KONFIGURASI FIREBASE REALTIME DATABASE
+    // 1. KONFIGURASI FIREBASE REALTIME DATABASE & ROOM PIN ENGINE (ALA KAHOOT)
     // =========================================================================
     const firebaseConfig = {
       apiKey: "AIzaSyBJiSmhWsMGlu5AqEZeBqQcELDd_wUqt5U",
@@ -510,21 +584,30 @@
       measurementId: "G-M3BZQ7XJE9"
     };
 
-    let dbRef = null;
+    let rootRoomsRef = null;
+    let currentRoomRef = null;
     let isFirebaseReady = false;
 
     if (firebaseConfig.databaseURL && firebaseConfig.apiKey) {
       try {
         firebase.initializeApp(firebaseConfig);
-        dbRef = firebase.database().ref("turnamen_6_tim_state");
+        rootRoomsRef = firebase.database().ref("turnamen_rooms");
         isFirebaseReady = true;
         document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-emerald-400 inline-block";
-        document.getElementById("connStatusText").textContent = "Terhubung Cloud Firebase (nacrv62026)";
+        document.getElementById("connStatusText").textContent = "Terhubung Cloud Firebase (Siap PIN)";
       } catch (e) {
         console.error("Firebase init error:", e);
         document.getElementById("connStatusDot").className = "w-2 h-2 rounded-full bg-rose-500 inline-block";
-        document.getElementById("connStatusText").textContent = "Gagal Koneksi Firebase (Fallback Lokal)";
+        document.getElementById("connStatusText").textContent = "Gagal Koneksi Firebase (Mode Lokal)";
       }
+    }
+
+    function generateRandomPin() {
+      return String(Math.floor(100000 + Math.random() * 900000));
+    }
+
+    function normalizePinString(raw) {
+      return String(raw || "").replace(/\D/g, "").slice(0, 6);
     }
 
     // =========================================================================
@@ -688,7 +771,6 @@
     }
     document.addEventListener("click", unlockAllAudio, { once: false });
 
-    // Sound Tegang berjalan selama waktu > 10 detik, dan MATI otomatis saat memasuki <= 10 detik terakhir
     function startBgmTenseLoop() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -786,7 +868,6 @@
       }
     }
 
-    // 1. Bunyi Gong Besar
     function playLoudGong() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -852,7 +933,6 @@
       lfo.stop(now + duration);
     }
 
-    // 2. Bunyi Detik Pertandingan
     function playNormalTick() {
       if (isAudioMuted) return;
       ensureAudioContext();
@@ -885,12 +965,11 @@
       osc.stop(now + 0.065);
     }
 
-    // 3. Bunyi Emergency 10 Detik Terakhir (Sound Tegang otomatis dimatikan agar Emergency dominan)
     function playTenseCountdownSound(secLeft) {
       if (isAudioMuted) return;
       ensureAudioContext();
       stopExternalTickAudio();
-      stopBgmTenseLoop(); // Matikan sound tegang saat memasuki 10 detik terakhir
+      stopBgmTenseLoop();
 
       if (isTenseLoopPlaying && !externalTenseAudio.paused) {
         return;
@@ -962,19 +1041,16 @@
       });
     }
 
-    // Tombol Tes Gong
     function testGongSound() {
       unlockAllAudio();
       playLoudGong();
     }
 
-    // Tombol Tes Detik
     function testTickSound() {
       unlockAllAudio();
       playNormalTick();
     }
 
-    // Tombol Tes 10 Detik (Hanya suara Emergency yang terdengar lalu Gong saat 00:00)
     function test10SecondsCountdown() {
       unlockAllAudio();
       stopExternalTenseAudio();
@@ -994,14 +1070,16 @@
     }
 
     // =========================================================================
-    // 4. STATE, TIMER DINAMIS & AUTHENTICATION
+    // 4. STATE PER ROOM PIN, SINKRONISASI REAL-TIME & AUTHENTICATION
     // =========================================================================
     const DEFAULT_MATCH_DURATION_SEC = 300;
-    const STORAGE_KEY = "turnamen_6tim_v5_state";
-    const bc = new BroadcastChannel("turnamen_6tim_channel");
+    const ROOM_STORAGE_PREFIX = "turnamen_room_pin_";
+    const bc = new BroadcastChannel("turnamen_6tim_pin_channel");
 
     let sessionAuth = {
       role: "public",
+      activePin: null,
+      publicJoined: false,
       hostLoggedIn: false,
       judgeNumber: null
     };
@@ -1011,9 +1089,10 @@
       return dur > 0 ? dur : DEFAULT_MATCH_DURATION_SEC;
     }
 
-    function createDefaultState() {
+    function createDefaultState(pin) {
       const teams = ["Tim Alpha", "Tim Bravo", "Tim Charlie", "Tim Delta", "Tim Echo", "Tim Foxtrot"];
       return {
+        roomPin: pin || generateRandomPin(),
         eventTitle: "TURNAMEN TAKTIS 6 TIM",
         hostPassword: "admin",
         judgeCount: 2,
@@ -1075,7 +1154,7 @@
       };
     }
 
-    let appState = loadLocalState();
+    let appState = createDefaultState("000000");
 
     function normalizeTimerState(t) {
       if (!t) {
@@ -1093,48 +1172,81 @@
       return t;
     }
 
-    function loadLocalState() {
+    function loadLocalRoomState(pin) {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(ROOM_STORAGE_PREFIX + pin);
         if (raw) {
           const parsed = JSON.parse(raw);
           parsed.timer = normalizeTimerState(parsed.timer);
           return parsed;
         }
       } catch (e) {}
-      return createDefaultState();
+      return null;
+    }
+
+    async function fetchRoomStateByPin(pin) {
+      if (isFirebaseReady && rootRoomsRef) {
+        try {
+          const snap = await rootRoomsRef.child(pin).once("value");
+          const val = snap.val();
+          if (val) {
+            val.timer = normalizeTimerState(val.timer);
+            localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(val));
+            return val;
+          }
+        } catch (err) {
+          console.error("Fetch PIN error:", err);
+        }
+      }
+      return loadLocalRoomState(pin);
+    }
+
+    function subscribeToRoomPin(pin) {
+      if (currentRoomRef) {
+        currentRoomRef.off();
+        currentRoomRef = null;
+      }
+      sessionAuth.activePin = pin;
+      if (isFirebaseReady && rootRoomsRef && pin) {
+        currentRoomRef = rootRoomsRef.child(pin);
+        currentRoomRef.on("value", (snapshot) => {
+          const val = snapshot.val();
+          if (val) {
+            val.timer = normalizeTimerState(val.timer);
+            appState = val;
+            localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(appState));
+            renderAll();
+          }
+        });
+      }
+    }
+
+    function detachRoomSubscription() {
+      if (currentRoomRef) {
+        currentRoomRef.off();
+        currentRoomRef = null;
+      }
     }
 
     function persistState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-      bc.postMessage(appState);
-      if (isFirebaseReady && dbRef) {
-        dbRef.set(appState);
+      const pin = sessionAuth.activePin || appState.roomPin;
+      if (!pin) return;
+      appState.roomPin = pin;
+      localStorage.setItem(ROOM_STORAGE_PREFIX + pin, JSON.stringify(appState));
+      bc.postMessage({ pin, state: appState });
+      if (isFirebaseReady && rootRoomsRef) {
+        rootRoomsRef.child(pin).set(appState);
       }
       renderAll();
     }
 
     bc.onmessage = (ev) => {
-      if (ev.data) {
-        appState = ev.data;
+      if (ev.data && ev.data.pin && ev.data.pin === sessionAuth.activePin && ev.data.state) {
+        appState = ev.data.state;
         appState.timer = normalizeTimerState(appState.timer);
         renderAll();
       }
     };
-
-    if (isFirebaseReady && dbRef) {
-      dbRef.on("value", (snapshot) => {
-        const val = snapshot.val();
-        if (val) {
-          val.timer = normalizeTimerState(val.timer);
-          appState = val;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-          renderAll();
-        } else {
-          dbRef.set(appState);
-        }
-      });
-    }
 
     // =========================================================================
     // 5. LOGIKA COUNTDOWN TIMER DINAMIS REAL-TIME & AUDIO TRIGGER
@@ -1284,6 +1396,8 @@
     }
 
     function updateTimerDisplaysAndAudio() {
+      if (!sessionAuth.activePin) return;
+
       const configuredDur = getConfiguredDurationSec();
       const t = appState.timer || { durationSec: configuredDur, remainingSec: configuredDur, isRunning: false, endTimestamp: null, finished: false };
       const rem = getCurrentRemainingSeconds();
@@ -1312,7 +1426,6 @@
         }
       }
 
-      // Styling visual timer berdasarkan kondisi waktu
       if (rem === 0) {
         if (pubDisp) pubDisp.className = "font-mono-timer text-5xl md:text-7xl font-black tracking-wider text-rose-500";
         if (pubBox) pubBox.className = "px-8 py-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500 text-center shadow-lg";
@@ -1339,14 +1452,12 @@
         if (judgeBox) judgeBox.className = "px-4 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-center";
       }
 
-      // Bunyi gong besar saat waktu mulai berjalan
       if (t.isRunning && !lastKnownTimerRunning && rem > 0) {
         playLoudGong();
         if (rem > 10) startBgmTenseLoop();
       }
       lastKnownTimerRunning = !!t.isRunning;
 
-      // Pemicu bunyi tiap detik saat timer aktif berjalan
       if (t.isRunning && lastSoundedSecond !== rem) {
         const isFirstStartSecond = (lastSoundedSecond === null);
         lastSoundedSecond = rem;
@@ -1440,7 +1551,7 @@
     }
 
     // =========================================================================
-    // 7. NAVIGASI ROLE & AUTENTIKASI LOGIN
+    // 7. NAVIGASI ROLE & AUTENTIKASI BERBASIS ROOM PIN (SEPERTI KAHOOT)
     // =========================================================================
     function switchRole(role) {
       sessionAuth.role = role;
@@ -1453,19 +1564,147 @@
           btn.className = "px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition text-slate-400 hover:text-white";
         }
       });
+
+      // Otomatis isi kotak PIN di role lain jika perangkat ini sudah pernah masuk ke sebuah PIN
+      if (sessionAuth.activePin) {
+        const pubPinEl = document.getElementById("publicPinInput");
+        const judgePinEl = document.getElementById("judgePinInput");
+        const hostPinEl = document.getElementById("hostPinInput");
+        if (pubPinEl && !pubPinEl.value) pubPinEl.value = sessionAuth.activePin;
+        if (judgePinEl && !judgePinEl.value) judgePinEl.value = sessionAuth.activePin;
+        if (hostPinEl && !hostPinEl.value) hostPinEl.value = sessionAuth.activePin;
+      }
+
       renderAll();
     }
 
-    function handleHostLogin(e) {
+    // --- A. JOIN LAYAR UMUM DENGAN PIN ---
+    async function handlePublicJoinPin(e) {
       e.preventDefault();
-      const input = document.getElementById("hostPasswordInput").value;
-      if (input === appState.hostPassword) {
-        sessionAuth.hostLoggedIn = true;
+      const pin = normalizePinString(document.getElementById("publicPinInput").value);
+      const errEl = document.getElementById("publicPinError");
+      const btnEl = document.getElementById("publicJoinBtn");
+
+      if (pin.length < 4) {
+        errEl.textContent = "Masukkan PIN Turnamen yang valid dari Host.";
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      btnEl.disabled = true;
+      btnEl.textContent = "Menghubungkan...";
+
+      const existing = await fetchRoomStateByPin(pin);
+      btnEl.disabled = false;
+      btnEl.textContent = "Hubungkan ke Layar Turnamen";
+
+      if (!existing) {
+        errEl.textContent = `PIN ${pin} tidak ditemukan. Pastikan Host sudah membuka sesi dengan PIN tersebut.`;
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      errEl.classList.add("hidden");
+      appState = existing;
+      sessionAuth.publicJoined = true;
+      subscribeToRoomPin(pin);
+      renderAll();
+    }
+
+    function leavePublicRoom() {
+      sessionAuth.publicJoined = false;
+      if (!sessionAuth.hostLoggedIn && sessionAuth.judgeNumber === null) {
+        detachRoomSubscription();
+        sessionAuth.activePin = null;
+      }
+      renderAll();
+    }
+
+    // --- B. LOGIN / BUAT PIN HOST ---
+    async function handleHostLogin(e) {
+      e.preventDefault();
+      const rawPin = normalizePinString(document.getElementById("hostPinInput").value);
+      const passInput = document.getElementById("hostPasswordInput").value;
+      const errEl = document.getElementById("hostLoginError");
+      const btnEl = document.getElementById("hostLoginBtn");
+
+      btnEl.disabled = true;
+      btnEl.textContent = "Memverifikasi Sesi...";
+
+      if (rawPin) {
+        // Membuka / melanjutkan PIN yang sudah ada (atau membuat baru dengan PIN spesifik tersebut)
+        const existing = await fetchRoomStateByPin(rawPin);
+        btnEl.disabled = false;
+        btnEl.textContent = "Buka / Buat Sesi Host";
+
+        if (existing) {
+          if (passInput !== existing.hostPassword) {
+            errEl.textContent = `Password Host salah untuk PIN ${rawPin}.`;
+            errEl.classList.remove("hidden");
+            return;
+          }
+          appState = existing;
+        } else {
+          // Buat sesi baru dengan PIN pilihan Host & password yang diinput
+          appState = createDefaultState(rawPin);
+          appState.hostPassword = passInput || "admin";
+        }
+
+        errEl.classList.add("hidden");
         document.getElementById("hostPasswordInput").value = "";
-        document.getElementById("hostLoginError").classList.add("hidden");
-        renderAll();
+        sessionAuth.hostLoggedIn = true;
+        sessionAuth.publicJoined = true;
+        subscribeToRoomPin(rawPin);
+        persistState();
       } else {
-        document.getElementById("hostLoginError").classList.remove("hidden");
+        // Buat PIN 6 digit baru otomatis ala Kahoot
+        let newPin = generateRandomPin();
+        if (isFirebaseReady && rootRoomsRef) {
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const check = await fetchRoomStateByPin(newPin);
+            if (!check) break;
+            newPin = generateRandomPin();
+          }
+        }
+
+        btnEl.disabled = false;
+        btnEl.textContent = "Buka / Buat Sesi Host";
+
+        appState = createDefaultState(newPin);
+        appState.hostPassword = passInput || "admin";
+
+        errEl.classList.add("hidden");
+        document.getElementById("hostPasswordInput").value = "";
+        sessionAuth.hostLoggedIn = true;
+        sessionAuth.publicJoined = true;
+        subscribeToRoomPin(newPin);
+        persistState();
+      }
+    }
+
+    function generateNewHostPinSession() {
+      if (!confirm("Buat PIN Turnamen baru (seperti sesi baru Kahoot)? Data sesi lama tetap tersimpan pada PIN sebelumnya.")) return;
+      stopExternalTenseAudio();
+      stopExternalTickAudio();
+      stopBgmTenseLoop();
+      const newPin = generateRandomPin();
+      const keepHostPass = appState.hostPassword || "admin";
+      appState = createDefaultState(newPin);
+      appState.hostPassword = keepHostPass;
+      lastSoundedSecond = null;
+      lastKnownTimerRunning = false;
+      subscribeToRoomPin(newPin);
+      persistState();
+    }
+
+    function copyActivePin() {
+      const pin = sessionAuth.activePin || appState.roomPin;
+      if (!pin) return;
+      navigator.clipboard?.writeText(pin).catch(() => {});
+      const btn = document.getElementById("copyPinBtn");
+      if (btn) {
+        btn.textContent = "PIN Tersalin!";
+        setTimeout(() => { btn.textContent = "Salin PIN"; }, 1800);
       }
     }
 
@@ -1474,21 +1713,60 @@
       renderAll();
     }
 
-    function handleJudgeLogin(e) {
+    // --- C. LOGIN JURI DENGAN PIN + NOMOR JURI + PASSWORD ---
+    async function handleJudgeLogin(e) {
       e.preventDefault();
+      const pin = normalizePinString(document.getElementById("judgePinInput").value);
       const jNum = Number(document.getElementById("judgeSelectNumber").value);
-      const input = document.getElementById("judgePasswordInput").value;
-      const customPass = (appState.judgePasswords && appState.judgePasswords[jNum]) ? appState.judgePasswords[jNum] : "";
-      const validPass = customPass || appState.globalJudgePassword;
+      const passInput = document.getElementById("judgePasswordInput").value;
+      const errEl = document.getElementById("judgeLoginError");
+      const btnEl = document.getElementById("judgeLoginBtn");
 
-      if (input === validPass) {
-        sessionAuth.judgeNumber = jNum;
-        document.getElementById("judgePasswordInput").value = "";
-        document.getElementById("judgeLoginError").classList.add("hidden");
-        renderAll();
-      } else {
-        document.getElementById("judgeLoginError").classList.remove("hidden");
+      if (pin.length < 4) {
+        errEl.textContent = "Masukkan PIN Turnamen 6 digit dari Host.";
+        errEl.classList.remove("hidden");
+        return;
       }
+
+      btnEl.disabled = true;
+      btnEl.textContent = "Menghubungkan...";
+
+      const roomData = (sessionAuth.activePin === pin && appState?.roomPin === pin)
+        ? appState
+        : await fetchRoomStateByPin(pin);
+
+      btnEl.disabled = false;
+      btnEl.textContent = "Masuk Terminal Juri";
+
+      if (!roomData) {
+        errEl.textContent = `PIN ${pin} tidak ditemukan. Periksa kembali angka PIN dari Host.`;
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      const maxJudges = Number(roomData.judgeCount) || 2;
+      if (jNum > maxJudges) {
+        errEl.textContent = `Pada PIN ${pin}, Host hanya mengaktifkan ${maxJudges} Juri.`;
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      const customPass = (roomData.judgePasswords && roomData.judgePasswords[jNum]) ? roomData.judgePasswords[jNum] : "";
+      const validPass = customPass || roomData.globalJudgePassword;
+
+      if (passInput !== validPass) {
+        errEl.textContent = `Password Juri ${jNum} salah untuk PIN ${pin}.`;
+        errEl.classList.remove("hidden");
+        return;
+      }
+
+      errEl.classList.add("hidden");
+      document.getElementById("judgePasswordInput").value = "";
+      appState = roomData;
+      sessionAuth.judgeNumber = jNum;
+      sessionAuth.publicJoined = true;
+      subscribeToRoomPin(pin);
+      renderAll();
     }
 
     function logoutJudge() {
@@ -1641,11 +1919,14 @@
     }
 
     function resetAllData() {
-      if (confirm("Reset seluruh data turnamen ke awal?")) {
+      const pin = sessionAuth.activePin || appState.roomPin;
+      if (confirm(`Reset seluruh data pertandingan untuk PIN ${pin} ke awal?`)) {
         stopExternalTenseAudio();
         stopExternalTickAudio();
         stopBgmTenseLoop();
-        appState = createDefaultState();
+        const keepHostPass = appState.hostPassword || "admin";
+        appState = createDefaultState(pin);
+        appState.hostPassword = keepHostPass;
         lastSoundedSecond = null;
         lastKnownTimerRunning = false;
         persistState();
@@ -1714,7 +1995,17 @@
     }
 
     function renderAll() {
-      document.getElementById("headerEventTitle").textContent = appState.eventTitle || "TURNAMEN 6 TIM";
+      const activePin = sessionAuth.activePin;
+      const headerPinBadge = document.getElementById("headerPinBadge");
+      if (activePin) {
+        document.getElementById("headerEventTitle").textContent = appState.eventTitle || "TURNAMEN 6 TIM";
+        headerPinBadge.textContent = `PIN: ${activePin}`;
+        headerPinBadge.classList.remove("hidden");
+      } else {
+        document.getElementById("headerEventTitle").textContent = "TURNAMEN 6 TIM";
+        headerPinBadge.classList.add("hidden");
+      }
+
       updateTimerControlUI();
       updateTimerDisplaysAndAudio();
       renderPublicView();
@@ -1723,6 +2014,13 @@
     }
 
     function renderPublicView() {
+      const isConnected = !!sessionAuth.activePin && sessionAuth.publicJoined;
+      document.getElementById("publicPinGateBox").classList.toggle("hidden", isConnected);
+      document.getElementById("publicDashboard").classList.toggle("hidden", !isConnected);
+      if (!isConnected) return;
+
+      document.getElementById("pubActivePinText").textContent = sessionAuth.activePin;
+
       const vis = appState.publicVisibility || {};
       document.getElementById("pub-section-live").classList.toggle("hidden", !vis.live);
       document.getElementById("pub-section-standings").classList.toggle("hidden", !vis.standings);
@@ -1762,7 +2060,6 @@
         liveContainer.innerHTML = `<div class="col-span-3 text-center py-6 text-slate-400 text-sm">Belum ada pertandingan berstatus LIVE saat ini.</div>`;
       }
 
-      // Klasemen A & B
       ["A", "B"].forEach(g => {
         const rows = computeGroupStandings(g);
         const tbody = document.getElementById(`pubStandings${g}`);
@@ -1784,7 +2081,6 @@
         }).join("");
       });
 
-      // Bracket Tahap 2
       const playoffIds = ["P1", "P2", "P3", "P4", "P5", "P6"];
       document.getElementById("pubBracketGrid").innerHTML = playoffIds.map(id => {
         const m = appState.matches[id];
@@ -1809,7 +2105,6 @@
         `;
       }).join("");
 
-      // Podium 3 Juara (Juara 2 Kiri, Juara 1 Tengah Tertinggi + Animasi, Juara 3 Kanan)
       const p5 = appState.matches["P5"];
       const p6 = appState.matches["P6"];
       const j1 = p6.status === "completed" ? getTeamName(getMatchWinnerLoser(p6).winner) : "Menunggu Grand Final";
@@ -1817,7 +2112,6 @@
       const j3 = p5.status === "completed" ? getTeamName(getMatchWinnerLoser(p5).loser) : "Menunggu Lower Final";
 
       document.getElementById("pubPodiumGrid").innerHTML = `
-        <!-- JUARA 2 (SILVER - KIRI) -->
         <div class="podium-animate-2 order-2 md:order-1 flex flex-col justify-end">
           <div class="p-5 rounded-2xl bg-gradient-to-b from-slate-800/90 to-slate-950 border-2 border-slate-300/60 text-center shadow-xl md:min-h-[175px] flex flex-col justify-between transition-transform duration-300 hover:-translate-y-1.5">
             <div>
@@ -1830,7 +2124,6 @@
           </div>
         </div>
 
-        <!-- JUARA 1 (GOLD - TENGAH PALING TINGGI) -->
         <div class="podium-animate-1 order-1 md:order-2 flex flex-col justify-end">
           <div class="gold-glow-card p-6 rounded-2xl border-2 border-yellow-400 text-center md:min-h-[225px] flex flex-col justify-between transition-transform duration-300 hover:-translate-y-2">
             <div>
@@ -1843,7 +2136,6 @@
           </div>
         </div>
 
-        <!-- JUARA 3 (BRONZE - KANAN) -->
         <div class="podium-animate-3 order-3 md:order-3 flex flex-col justify-end">
           <div class="p-5 rounded-2xl bg-gradient-to-b from-amber-950/60 to-slate-950 border-2 border-amber-600/70 text-center shadow-xl md:min-h-[150px] flex flex-col justify-between transition-transform duration-300 hover:-translate-y-1.5">
             <div>
@@ -1857,7 +2149,6 @@
         </div>
       `;
 
-      // Riwayat Pertandingan Selesai
       const completed = Object.values(appState.matches).filter(m => m.status === "completed");
       document.getElementById("pubCompletedList").innerHTML = completed.length
         ? completed.map(m => {
@@ -1880,10 +2171,12 @@
     }
 
     function renderHostView() {
-      const loggedIn = sessionAuth.hostLoggedIn;
+      const loggedIn = sessionAuth.hostLoggedIn && !!sessionAuth.activePin;
       document.getElementById("hostLoginBox").classList.toggle("hidden", loggedIn);
       document.getElementById("hostDashboard").classList.toggle("hidden", !loggedIn);
       if (!loggedIn) return;
+
+      document.getElementById("hostActivePinDisplay").textContent = sessionAuth.activePin;
 
       const vis = appState.publicVisibility || {};
       document.getElementById("chk-live").checked = !!vis.live;
@@ -1966,25 +2259,15 @@
     }
 
     function renderJudgeView() {
-      const count = Number(appState.judgeCount) || 2;
-      const sel = document.getElementById("judgeSelectNumber");
-      const prevVal = sel.value;
-      sel.innerHTML = "";
-      for (let j = 1; j <= count; j++) {
-        const opt = document.createElement("option");
-        opt.value = j;
-        opt.textContent = `Juri ${j}`;
-        sel.appendChild(opt);
-      }
-      if (prevVal && Number(prevVal) <= count) sel.value = prevVal;
-
       const jNum = sessionAuth.judgeNumber;
-      const loggedIn = jNum !== null && jNum <= count;
+      const loggedIn = jNum !== null && !!sessionAuth.activePin;
       document.getElementById("judgeLoginBox").classList.toggle("hidden", loggedIn);
       document.getElementById("judgeDashboard").classList.toggle("hidden", !loggedIn);
       if (!loggedIn) return;
 
       document.getElementById("activeJudgeBadge").textContent = `JURI ${jNum}`;
+      document.getElementById("judgeActivePinBadge").textContent = `PIN: ${sessionAuth.activePin}`;
+
       const liveMatch = Object.values(appState.matches).find(m => m.status === "live");
       const area = document.getElementById("judgeLiveMatchArea");
 
@@ -1992,7 +2275,7 @@
         area.innerHTML = `
           <div class="glass-card rounded-2xl p-10 text-center">
             <h3 class="text-lg font-bold text-slate-300">Menunggu Host Mengaktifkan Pertandingan LIVE</h3>
-            <p class="text-xs text-slate-400 mt-1">Form penilaian akan muncul otomatis saat Host memulai pertandingan.</p>
+            <p class="text-xs text-slate-400 mt-1">Form penilaian akan muncul otomatis saat Host memulai pertandingan pada PIN ${sessionAuth.activePin}.</p>
           </div>
         `;
         return;
@@ -2063,7 +2346,6 @@
 
         return `
           <div class="glass-card rounded-2xl p-5 border-${accent}-500/30 space-y-5">
-            <!-- HEADER TIM & GRAND TOTAL -->
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
               <div>
                 <span class="text-xs font-bold uppercase text-${accent}-400">TIM ${side}</span>
@@ -2075,7 +2357,6 @@
               </div>
             </div>
 
-            <!-- A. SKOR TEMBAK (3 TARGET DIJUMLAHKAN) -->
             <div class="space-y-2.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-300">A. Skor Tembak (3 Target)</span>
@@ -2088,7 +2369,6 @@
               </div>
             </div>
 
-            <!-- B. SKOR BONUS (1 INPUT) -->
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-300">B. Skor Bonus</span>
@@ -2108,7 +2388,6 @@
               </div>
             </div>
 
-            <!-- C. PENALTI (RINCIAN PELANGGARAN SESUAI RUBRIK) -->
             <div class="space-y-2">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-extrabold uppercase tracking-wider text-rose-400">C. Penalti (Pelanggaran)</span>
@@ -2147,7 +2426,7 @@
       `;
     }
 
-    // Inisialisasi awal
+    // Inisialisasi awal (menampilkan gerbang PIN Layar Umum)
     renderAll();
   </script>
 </body>
