@@ -57,6 +57,7 @@
         <div>
           <div class="flex items-center gap-2">
             <h1 id="headerEventTitle" class="font-extrabold text-base md:text-lg tracking-tight text-white">TURNAMEN 6 TIM</h1>
+            <!-- PIN BADGE: Otomatis disembunyikan pada Layar UMUM agar PIN tidak bocor -->
             <span id="headerPinBadge" class="hidden px-2.5 py-0.5 rounded-md bg-amber-500/20 border border-amber-400/50 text-amber-300 font-mono-timer text-xs font-extrabold">
               PIN: ------
             </span>
@@ -108,7 +109,7 @@
   <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
 
     <!-- ========================================================= -->
-    <!-- 1. LAYAR UMUM (JOIN PIN + PROYEKTOR / PENONTON)           -->
+    <!-- 1. LAYAR UMUM (JOIN PIN TERTUTUP + PROYEKTOR / PENONTON)  -->
     <!-- ========================================================= -->
     <section id="view-public" class="space-y-6">
       <div id="publicPinGateBox" class="max-w-md mx-auto mt-12 glass-card rounded-2xl p-8 shadow-2xl text-center border-indigo-500/30">
@@ -118,8 +119,9 @@
         <h2 class="text-2xl font-black text-white mb-1">Layar Penonton / Umum</h2>
         <p class="text-xs text-slate-400 mb-6">Masukkan <b>PIN Turnamen</b> dari Host agar skor, timer, dan klasemen tersinkronisasi otomatis.</p>
         <form onsubmit="handlePublicJoinPin(event)" class="space-y-4">
-          <input type="text" id="publicPinInput" inputmode="numeric" maxlength="6" required autocomplete="off"
-            placeholder="PIN 6 DIGIT"
+          <!-- Menggunakan type="password" agar angka PIN tidak tampil terbuka di proyektor saat diketik -->
+          <input type="password" id="publicPinInput" inputmode="numeric" maxlength="6" required autocomplete="off"
+            placeholder="••••••"
             class="w-full px-4 py-3.5 rounded-xl bg-slate-950 border-2 border-slate-700 text-center font-mono-timer text-2xl md:text-3xl font-black tracking-[0.25em] text-amber-400 focus:outline-none focus:border-indigo-500" />
           <p id="publicPinError" class="text-xs text-rose-400 hidden leading-relaxed"></p>
           <button type="submit" id="publicJoinBtn" class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-extrabold text-sm text-white transition shadow-lg shadow-indigo-600/30">
@@ -128,16 +130,15 @@
         </form>
       </div>
 
-      <!-- KONTEN UTAMA LAYAR UMUM (SETELAH PIN TERHUBUNG) -->
+      <!-- KONTEN UTAMA LAYAR UMUM (SETELAH PIN TERHUBUNG — BEBAS DARI TAMPILAN PIN) -->
       <div id="publicDashboard" class="hidden space-y-6">
         <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-4 py-2.5 rounded-xl">
           <div class="flex items-center gap-2 text-xs">
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-slate-400">Tersinkronisasi dengan PIN:</span>
-            <span id="pubActivePinText" class="font-mono-timer font-extrabold text-amber-400 text-sm">------</span>
+            <span class="text-slate-300 font-semibold">Layar Penonton Aktif • Sinkronisasi Real-Time</span>
           </div>
           <button onclick="leavePublicRoom()" class="text-xs text-slate-400 hover:text-rose-400 font-semibold underline">
-            Ganti PIN Turnamen
+            Putuskan Sesi Layar
           </button>
         </div>
 
@@ -273,7 +274,7 @@
           <div>
             <div class="flex flex-wrap items-center gap-2">
               <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">
-                PIN HOST TERKUNCI & PERSISTEN
+                PIN HOST TERKUNCI & PERSISTEN (RAHASIA)
               </span>
               <span id="hostCloudSyncBadge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                 Menyimpan ke Cloud...
@@ -289,7 +290,7 @@
               </button>
             </div>
             <p class="text-[11px] text-slate-400 mt-1.5">
-              Aman di-refresh (F5). Gunakan PIN & Password Host yang sama untuk melanjutkan kontrol dari perangkat lain.
+              PIN disembunyikan dari Layar Umum. Bagikan hanya kepada Juri dan operator layar proyektor.
             </p>
           </div>
 
@@ -1685,9 +1686,7 @@
       });
 
       if (sessionAuth.activePin) {
-        const pubPinEl = document.getElementById("publicPinInput");
         const judgePinEl = document.getElementById("judgePinInput");
-        if (pubPinEl && !pubPinEl.value) pubPinEl.value = sessionAuth.activePin;
         if (judgePinEl && !judgePinEl.value) judgePinEl.value = sessionAuth.activePin;
       }
 
@@ -1722,7 +1721,8 @@
     // --- A. JOIN LAYAR UMUM DENGAN PIN ---
     async function handlePublicJoinPin(e) {
       e.preventDefault();
-      const pin = normalizePinString(document.getElementById("publicPinInput").value);
+      const pinInputEl = document.getElementById("publicPinInput");
+      const pin = normalizePinString(pinInputEl.value);
       const errEl = document.getElementById("publicPinError");
       const btnEl = document.getElementById("publicJoinBtn");
 
@@ -1742,12 +1742,13 @@
       if (!res.data) {
         errEl.textContent = res.error
           ? res.error
-          : `PIN ${pin} belum ditemukan di server Cloud. Pastikan Host sudah masuk terlebih dahulu.`;
+          : "PIN tidak ditemukan di server Cloud. Pastikan Host sudah masuk terlebih dahulu.";
         errEl.classList.remove("hidden");
         return;
       }
 
       errEl.classList.add("hidden");
+      pinInputEl.value = "";
       appState = res.data;
       sessionAuth.publicJoined = true;
       subscribeToRoomPin(pin);
@@ -1756,6 +1757,8 @@
 
     function leavePublicRoom() {
       sessionAuth.publicJoined = false;
+      const pinInputEl = document.getElementById("publicPinInput");
+      if (pinInputEl) pinInputEl.value = "";
       if (!sessionAuth.hostLoggedIn && sessionAuth.judgeNumber === null) {
         detachRoomSubscription();
         sessionAuth.activePin = null;
@@ -2175,12 +2178,22 @@
     function renderAll() {
       const activePin = sessionAuth.activePin;
       const headerPinBadge = document.getElementById("headerPinBadge");
+
+      // PIN hanya ditampilkan di header jika sedang membuka tampilan HOST atau JURI (bukan Layar UMUM)
+      const isPrivateRoleActive =
+        (sessionAuth.role === "host" && sessionAuth.hostLoggedIn) ||
+        (sessionAuth.role === "judge" && sessionAuth.judgeNumber !== null);
+
       if (activePin) {
         document.getElementById("headerEventTitle").textContent = appState.eventTitle || "TURNAMEN 6 TIM";
+      } else {
+        document.getElementById("headerEventTitle").textContent = "TURNAMEN 6 TIM";
+      }
+
+      if (activePin && isPrivateRoleActive) {
         headerPinBadge.textContent = `PIN: ${activePin}`;
         headerPinBadge.classList.remove("hidden");
       } else {
-        document.getElementById("headerEventTitle").textContent = "TURNAMEN 6 TIM";
         headerPinBadge.classList.add("hidden");
       }
 
@@ -2196,8 +2209,6 @@
       document.getElementById("publicPinGateBox").classList.toggle("hidden", isConnected);
       document.getElementById("publicDashboard").classList.toggle("hidden", !isConnected);
       if (!isConnected) return;
-
-      document.getElementById("pubActivePinText").textContent = sessionAuth.activePin;
 
       const vis = appState.publicVisibility || {};
       document.getElementById("pub-section-live").classList.toggle("hidden", !vis.live);
@@ -2381,7 +2392,6 @@
       indHtml += `</div>`;
       document.getElementById("individualJudgePassContainer").innerHTML = indHtml;
 
-      // Status Kunci Pembagian Grup
       const isGroupsLocked = !!appState.groupsLocked;
       const lockBadge = document.getElementById("groupLockStatusBadge");
       const randBtn = document.getElementById("randomizeGroupsBtn");
